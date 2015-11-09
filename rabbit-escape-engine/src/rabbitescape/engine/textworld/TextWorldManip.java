@@ -1,6 +1,7 @@
 package rabbitescape.engine.textworld;
 
 import static rabbitescape.engine.util.Util.concat;
+import static rabbitescape.engine.util.Util.splitLines;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,6 +86,11 @@ public class TextWorldManip
             ret.add( type.name() );
         }
         return ret;
+    }
+
+    public static World createWorld( String worldString )
+    {
+        return createWorld( splitLines( worldString ) );
     }
 
     public static World createWorld( String... lines )
@@ -265,7 +271,7 @@ public class TextWorldManip
         {
             ret.add( metaLine( name + "." + i, value ) );
             ++i;
-	}
+        }
     }
 
     private static void abilityMetaLines( World world, List<String> ret )

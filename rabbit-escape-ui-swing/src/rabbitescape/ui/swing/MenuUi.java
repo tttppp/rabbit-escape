@@ -1,5 +1,8 @@
 package rabbitescape.ui.swing;
 
+import static rabbitescape.engine.i18n.Translation.t;
+import static rabbitescape.ui.swing.SwingConfigSetup.CFG_MUTED;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
@@ -29,13 +32,11 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import static rabbitescape.engine.i18n.Translation.*;
-import static rabbitescape.ui.swing.SwingConfigSetup.*;
-
 import rabbitescape.engine.CompletedLevelWinListener;
 import rabbitescape.engine.IgnoreLevelWinListener;
 import rabbitescape.engine.LevelWinListener;
 import rabbitescape.engine.MultiLevelWinListener;
+import rabbitescape.engine.World;
 import rabbitescape.engine.config.Config;
 import rabbitescape.engine.config.ConfigKeys;
 import rabbitescape.engine.config.ConfigTools;
@@ -47,6 +48,8 @@ import rabbitescape.engine.menu.LevelsCompleted;
 import rabbitescape.engine.menu.Menu;
 import rabbitescape.engine.menu.MenuDefinition;
 import rabbitescape.engine.menu.MenuItem;
+import rabbitescape.engine.solution.SolutionRunner;
+import rabbitescape.engine.textworld.TextWorldManip;
 import rabbitescape.engine.util.RealFileSystem;
 import rabbitescape.render.BitmapCache;
 
@@ -279,6 +282,9 @@ public class MenuUi
         {
             return; // User clicked cancel, or selected issue with no world
         }
+
+        verifySolutions( world );
+
         String path = ConfigTools.getString(
             uiConfig, ConfigKeys.CFG_LOAD_LEVEL_PATH );
 
@@ -303,6 +309,18 @@ public class MenuUi
         {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Run all the supplied solutions and check if any throw an exception.
+     *
+     * @param worldString The string provided containing the lines of the level.
+     */
+    protected void verifySolutions( String worldString )
+    {
+        World world = TextWorldManip.createWorld( worldString );
+
+        SolutionRunner.runSolutions( world );
     }
 
     private void chooseLevel()

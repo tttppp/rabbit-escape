@@ -116,13 +116,7 @@ public class TestAllActiveLevels
                     new NothingExistsFileSystem() ).load(
                         new IgnoreWorldStatsListener(), lev.fileName );
 
-                int i = 0;
-                for ( String s : world.solutions )
-                {
-                    Solution solution = SolutionFactory.create( s, i );
-                    SolutionRunner.runSolution( solution, world );
-                    ++i;
-                }
+                SolutionRunner.runSolutions( world );
             }
         }
     }

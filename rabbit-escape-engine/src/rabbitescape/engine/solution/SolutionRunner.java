@@ -8,7 +8,34 @@ import rabbitescape.engine.World.NoneOfThisAbilityLeft;
 
 public class SolutionRunner
 {
-    public static void runSolution( Solution solution, World world )
+    /**
+     * Run all the solutions in a given world.
+     *
+     * @param world
+     *            The world to check.
+     * @throws InvalidSolution
+     *             If a validation step in a solution fails.
+     */
+    public static void runSolutions( World world ) throws InvalidSolution
+    {
+        for ( int i = 0; i < world.solutions.length; i++ )
+        {
+            Solution solution = SolutionFactory.create( world.solutions[i], i );
+            runSolution( solution, world );
+        }
+    }
+
+    /**
+     * Check a specified solution against a world.
+     *
+     * @param solution
+     *            The solution to run.
+     * @param world
+     *            The world to check.
+     * @throws InvalidSolution
+     *             If a validation step in the solution fails.
+     */
+    private static void runSolution( Solution solution, World world )
         throws InvalidSolution
     {
         SandboxGame sandboxGame = new SandboxGame( world );

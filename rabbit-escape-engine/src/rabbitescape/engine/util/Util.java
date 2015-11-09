@@ -17,6 +17,9 @@ import rabbitescape.engine.err.RabbitEscapeException;
 
 public class Util
 {
+    /** Regex for line breaks on Windows, pre-OSX Mac and [Unix/post OSX Mac] respectively. */
+    private static final String LINE_BREAK_REGEX = "\r\n|\r|\n";
+
     public static interface Function<T, R>
     {
         public R apply( T t );
@@ -296,6 +299,11 @@ public class Util
         ret.add( input.substring( lastI ) );
 
         return ret.toArray( new String[ret.size()] );
+    }
+
+    public static String[] splitLines( String joinedLines )
+    {
+        return joinedLines.split( LINE_BREAK_REGEX );
     }
 
     public static Iterable<Integer> range( final int max )
