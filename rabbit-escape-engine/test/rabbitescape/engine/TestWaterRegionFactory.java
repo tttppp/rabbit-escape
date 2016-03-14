@@ -62,7 +62,11 @@ public class TestWaterRegionFactory
     {
         List<WaterRegion> waterRegions = WaterRegionFactory.makeWaterRegion( 0, 0, new Shape[]{ Shape.BRIDGE_UP_RIGHT, Shape.BRIDGE_UP_LEFT }, false );
 
-        List<WaterRegion> expected = Arrays.asList( new WaterRegion( 0, 0, Util.newSet( UP, LEFT, RIGHT, DOWN ), MAX_CAPACITY ) );
+        List<WaterRegion> expected = Arrays.asList(
+            new WaterRegion( 0, 0, Util.newSet( UP ), QUARTER_CAPACITY ),
+            new WaterRegion( 0, 0, Util.newSet( DOWN ), QUARTER_CAPACITY ),
+            new WaterRegion( 0, 0, Util.newSet( LEFT ), QUARTER_CAPACITY ),
+            new WaterRegion( 0, 0, Util.newSet( RIGHT ), QUARTER_CAPACITY ) );
         assertThat( waterRegions, equalTo( expected ) );
     }
 
@@ -97,6 +101,21 @@ public class TestWaterRegionFactory
         List<WaterRegion> waterRegions = WaterRegionFactory.makeWaterRegion( 0, 0, new Shape[]{ Shape.BRIDGE_UP_LEFT, Shape.UP_LEFT }, false );
 
         List<WaterRegion> expected = Arrays.asList( new WaterRegion( 0, 0, Util.newSet( UP, RIGHT ), HALF_CAPACITY ) );
+        assertThat( waterRegions, equalTo( expected ) );
+    }
+
+    /**
+     * Test creating regions for a cell with a bridge crossing a ramp. (This
+     * should be impossible to build, but it could be created in a rel file).
+     */
+    @Test
+    public void make_water_region_bridge_crossing_ramp()
+    {
+        List<WaterRegion> waterRegions = WaterRegionFactory.makeWaterRegion( 0, 0, new Shape[]{ Shape.BRIDGE_UP_RIGHT, Shape.UP_LEFT }, false );
+
+        List<WaterRegion> expected = Arrays.asList(
+            new WaterRegion( 0, 0, Util.newSet( RIGHT ), QUARTER_CAPACITY ),
+            new WaterRegion( 0, 0, Util.newSet( UP ), QUARTER_CAPACITY ) );
         assertThat( waterRegions, equalTo( expected ) );
     }
 }

@@ -102,7 +102,7 @@ public class World
     public final Dimension size;
 //    public final List<Block> blocks;
     public final LookupTable2D<Block> blockTable;
-    /** A grid of water. Only one water object should be stored in each location. */
+    /** A grid of water. */
     public final LookupTable2D<WaterRegion> waterTable;
     public final List<Rabbit> rabbits;
     public final List<Thing> things;

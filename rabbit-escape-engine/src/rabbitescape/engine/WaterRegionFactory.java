@@ -5,6 +5,7 @@ import static rabbitescape.engine.CellularDirection.LEFT;
 import static rabbitescape.engine.CellularDirection.RIGHT;
 import static rabbitescape.engine.CellularDirection.UP;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 import rabbitescape.engine.Block.Shape;
 import rabbitescape.engine.util.LookupTable2D;
+import rabbitescape.engine.util.Util;
 import rabbitescape.engine.util.WaterUtil;
 
 public class WaterRegionFactory
@@ -58,6 +60,8 @@ public class WaterRegionFactory
     {
         Set<CellularDirection> connections = new HashSet<>(
             Arrays.asList( UP, LEFT, RIGHT, DOWN ) );
+        boolean bridgeUpLeft = false;
+        boolean bridgeUpRight = false;
         for ( Shape shape : shapes )
         {
             switch ( shape )
@@ -75,19 +79,82 @@ public class WaterRegionFactory
                     break;
                  // TODO Consider whether bridges should cause there to be two water regions.
                 case BRIDGE_UP_LEFT:
+                    bridgeUpLeft = true;
+                    break;
                 case BRIDGE_UP_RIGHT:
+                    bridgeUpRight = true;
                     break;
                 default:
                     throw new IllegalArgumentException( "Unrecognised shape: " + shape );
             }
         }
 
+        if ( !bridgeUpLeft && !bridgeUpRight )
+        {
+            return Arrays
+                .asList( makeWaterRegion( x, y, outsideWorld, connections ) );
+        }
+
+        // There may be multiple regions in this cell.
+        List<WaterRegion> retList = new ArrayList<>();
+
+        if ( bridgeUpLeft && bridgeUpRight )
+        {
+            // Cell contains crossing bridges.
+            for ( CellularDirection connection : connections )
+            {
+                retList.add( new WaterRegion( x, y, Util.newSet( connection ), WaterUtil.QUARTER_CAPACITY ) );
+            }
+        }
+        else
+        {
+            // Exactly one bridge direction is present.
+
+            if ( bridgeUpLeft )
+            {
+                Set<CellularDirection> bottomLeft = Util.newSet( LEFT, DOWN );
+                bottomLeft.retainAll( connections );
+                Set<CellularDirection> topRight = Util.newSet( UP, RIGHT );
+                topRight.retainAll( connections );
+                if ( bottomLeft.size() > 0 )
+                {
+                    retList.add( makeWaterRegion( x, y, outsideWorld, bottomLeft ) );
+                }
+                if ( topRight.size() > 0 )
+                {
+                    retList.add( makeWaterRegion( x, y, outsideWorld, topRight ) );
+                }
+            }
+            else
+            {
+                Set<CellularDirection> bottomRight = Util.newSet( RIGHT, DOWN );
+                bottomRight.retainAll( connections );
+                Set<CellularDirection> topLeft = Util.newSet( UP, LEFT );
+                topLeft.retainAll( connections );
+                if ( bottomRight.size() > 0 )
+                {
+                    retList.add( makeWaterRegion( x, y, outsideWorld, bottomRight ) );
+                }
+                if ( topLeft.size() > 0 )
+                {
+                    retList.add( makeWaterRegion( x, y, outsideWorld, topLeft ) );
+                }
+            }
+        }
+        return retList;
+    }
+
+    private static WaterRegion makeWaterRegion(
+        int x,
+        int y,
+        boolean outsideWorld,
+        Set<CellularDirection> connections )
+    {
         int capacity = findCapacity( connections );
 
-        return Arrays.asList(
-            new WaterRegion( x, y,
-                connections,
-                capacity, outsideWorld ) );
+        return new WaterRegion( x, y,
+            connections,
+            capacity, outsideWorld );
     }
 
     private static int findCapacity( Set<CellularDirection> connections )
