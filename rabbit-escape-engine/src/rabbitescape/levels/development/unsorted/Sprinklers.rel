@@ -1,0 +1,25 @@
+:name=Sprinklers
+:description=Build your own fire extinguisher!
+:author_name=tttppp
+:author_url=https://github.com/tttppp
+:hint.1.code=o;VU);U9EE;)o;Bp)oUpod;*U)yon;8*E)DU;_UbEU
+:hint.2.code=$9000m0i9:0}i8`9{iwxt}i}i8r_w}/`i/`xt8i`$l`}:ir&i&xww9`/`_0i}9}9irr}`iu9}``:ii:n$$
+:hint.3.code=&1(1"(fhjnI!3N'fnof&2n!jr(&!!'n"N"&9h!"do#fn&R&(&&nn=n!f'3B&r&!&N"f&&r
+:solution.1.code=y?#\a;a;a\a\a\a;a\a\a;a;a\a;a\a\a;a\a\a;a\a\a\a;a\a\a;a\a\a;a\a\a\a;a;}]g;y?Vi{>;a;aVg8;;#bDx;;Vz5a\gfb>y?}z;akg5b\x#;D8z5a;g;]z]b>;b;z#hfxz8DbD\g;y?#5z3a>;a;bg;z;bD;>;fz]y{z{z{}{z?z{z{zzz{8{zaz{]{zgz{z{z3z{;{z{z{8{zaz{]{zgz{;{z{z{;{zb>;a;by;a>{y}3hb?bf;}yDx>5g}a5?5z\g5z;g{{5aig3;zggg;#5bx{#55x;gDz5\8gza5]]gag{3;ggh5;5zzb5hfgag{3>gg}5;5z8;5;bgzg{hxgaD53;ggh5;;{b55f3gyaz>gg}g5?;g;b5]fg;y5zzg8}5a?g]{ygzg;3z5g;;35zg{k5ga]g];ggz5;f5by5#>5x}gD?z;g5;35z;58{za8g]agg]5;g83;>;f{b#gfx}yz}>;5}3;?hz;bhzfg
+:num_rabbits=5
+:num_to_save=5
+:rabbit_delay=4
+:bash=99
+:bridge=99
+:dig=99
+   #P#    
+   ###   #
+#Q ####/##
+#  #/## ##
+#### # / #
+)        (
+MM(MM(MM(M
+M  M  M  M
+MAMMAMMAMM
+M)  )  )OM
+M((((((((M
