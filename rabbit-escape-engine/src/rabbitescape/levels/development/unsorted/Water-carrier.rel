@@ -1,0 +1,28 @@
+:name=Water Carrier
+:description=Can you transport some water across the length of the level?
+:author_name=tttppp
+:author_url=https://github.com/tttppp
+:hint.1.code=PPX8EEGcN2!5X22XHE*8cP,22EX2cEA2ck82kYc2-SX!}
+:hint.2.code=Z#q*Zo4Zq#qcoc4Zq(Oh?q??coZ?4cW#H?kSS~Z~qkm?Z?#?(!cRO*?p??(("N?~
+:hint.3.code=,[kPb?c,GUq',U+H6cP,,?Y,,iY*cQ''?[JT,,Y",PckHiGqP'>+?+
+:solution.1.code=h9A9!'{9_qqHX9h9A9{9_q9eJR!'a\9h99h9A9!'93'chZ'3o9a9Fwn}_9hR'!o9a9A9H!'eh99m'XI9J'9eJ9Z'9<_R9\9_9aZ9!'9Xh\9!9HXZ_99I9q'_R'ZXZ3qZ!9m!aq'HXeehRA9<Xa9J3_9IZ9h!_9hR'qhAec_9'Jo939!qa99{_eIZa\ho9cq''h_9AZ_acq9hhZqc<e'h99ho!9_9!a_!HZ9Rh!A<_X'h_9q999qa99{q_I9Z\{c9_q_
+:num_rabbits=10
+:num_to_save=1
+:rabbit_delay=4
+:bash=99
+:block=99
+:bridge=99
+:brolly=99
+:climb=99
+:dig=99
+:explode=99
+##########      #   #
+#n#        /##\   / #
+###  /############  #
+#\  /###########   /#
+# ############## ####
+# ############## ####
+# ##############  ###
+#  Q   ########## MMM
+#      #########  AOM
+###############  #MMM
