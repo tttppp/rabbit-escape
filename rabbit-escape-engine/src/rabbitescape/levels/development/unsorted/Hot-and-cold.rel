@@ -1,0 +1,23 @@
+:name=Hot and Cold
+:description=Can you travel both the Fiery Footpath and the Way of Water?
+:author_name=tttppp
+:author_url=https://github.com/tttppp
+:hint.1.code=g==m|=HMHMF=ai8a!U=MOaU![|=!aSg|[!I!=H=|!jH=X=sgF}gUXTXU!!G
+:hint.2.code=wA7Mmed?``p`2`MS98AM`M`eMnw9m2Q70mi`:lMw`222pi2`SeMwQ8A&9MM8M!`MA&e2!i`e2mJ
+:hint.3.code=It's possible for a bunny to bash below fire without getting burnt.
+:solution.1.code=epW>e :  : O!FYpW>b A>b ^ZqY : O!zY : ^''YpW : >bbO! : >_e^>: O!bY IYe Y qb>:bYeOcAL ! _b>:_Ye@ W^  b>:eY_L bY W>F O b'O@ eY A>:!pW qY>A bY ^ZI:>ee>_zLcc ^OzYp!z^O@@: >b_Zc: >b W bc^_>b:eY'L Yb_FY ebe Lc: >L OA@L!OAc:!> c Y>eYb:F+__:YYe FYOA p O^:p>O^Wb@ZZW@:Z> cbO> cb:L_eY::p?  Y_c WbOO>LLFAAq!!  cY?AL bb>'>bq _e@:Y+? qY   O __Y ^:O@cpY ^Z+@ +W: Z>e b?> >b:>'_::AY' zY?   OeO  LWO@@p!e^ Z@+ W>>ZbAc+'>:bbe_ebY: :'
+:num_rabbits=1
+:num_to_save=3
+:rabbit_delay=4
+:bash=20
+:bridge=20
+:brolly=1
+:climb=1
+:dig=20
+#r# ###  ###  #A# #r#
+### #### #Q# #### ###
+#   #P## # # #A##   #
+    #### # # ####    
+     ### ### ###     
+MNNNM### #O# ###MAAAM
+MMMMM###########MMMMM
