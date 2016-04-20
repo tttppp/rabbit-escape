@@ -1,0 +1,29 @@
+:name=Neighbours
+:description=Everybody loves good ones.
+:author_name=tttppp
+:author_url=https://github.com/tttppp
+:hint.1.code=+n8bxn-g(%G-Pe%%os-$og%xbcZ
+:hint.2.code=lh&4!m8Hl48rP&gl4<8hHH8<mH8H8ri21!l{`8l!~ Hli&=rCmH!{(r441!HHmH4H4mm1l(lH
+:hint.3.code=VQFF333fFe38hz5f"8zlh"83Fl@?3DhL3f""&8f$,"3V,Du3"5@V",L
+:solution.1.code=eSwe}e9weDweLqAD9$Ydj}ehwhL+SDAYRA>+SLSeS_$Y@eMeDA>+.eweD:$SAD]ke?w:eAweAwe}9>DSLSA++A.Sj}>.we@e$k$ADjkeL.eeLe}.eqYA>_e>L.ARec$k.e.De>e>AeS.$S>e.S]Dk?w$ee9>SBSeew$_.jd9@eM_Le_eS!e}eD>>_ASAw.q.SeDw>ee>ekA$Lwj}.LBck>$eAeq.AeAe}wkee
+:solution.2.code=0j'/0fX0=*=2d0j'/0OU0'/00Cc=d2#a\'hH0*0=`O#%0l0d2'h/0*O^HdO002d\f}==j/0}020EC'2d2'/h}F/*0fX0**{02'/00E00f#^U`OCfdXa2OO*000''U'=]b=0///0d=***00cO\0002UO^\EHC%E0`\\`d0|0'F*{'C{=*//fU==**d000'U22f\cCf`0b2'O*2/2/202
+:num_rabbits=4
+:num_to_save=4
+:rabbit_delay=4
+:bash=3
+:block=2
+:bridge=4
+:brolly=1
+:climb=2
+:dig=4
+:explode=3
+###########################
+#  Q  M  Q  M  Q  M  Q    #
+##\   M#\   M#\   M#\     #
+# M\  M M\  M M\  M M\ )  #
+# M#\ # M#\ # M#\ # M#\ \ #
+# MMMMMNMMMMMNMMMMMNMMM #)#
+#    *MMM   MMM   MMM  /#(#
+#   (                    )#
+###########################
+:*=(O
