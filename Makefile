@@ -1,8 +1,12 @@
 
+# Ensure all intermediate files are kept
+.SECONDARY:
+
 MAKEFLAGS += --warn-undefined-variables
 
 CLASSPATH=rabbit-escape-engine/bin/:rabbit-escape-render/bin/:rabbit-escape-ui-text/bin/:rabbit-escape-ui-swing/bin/
 
+IMAGESSVGGEN_DEST=bin/imagessvggen
 IMAGES32_DEST=rabbit-escape-ui-swing/src/rabbitescape/ui/swing/images32
 IMAGES64_DEST=rabbit-escape-ui-swing/src/rabbitescape/ui/swing/images64
 IMAGES128_DEST=rabbit-escape-ui-swing/src/rabbitescape/ui/swing/images128
@@ -18,9 +22,17 @@ ANDROIDICONSXXXHDPI_DEST=rabbit-escape-ui-android/app/src/main/res/drawable-xxxh
 
 SVGIMAGESSRC := $(wildcard images-src/*.svg)
 SVGICONSSRC  := $(wildcard images-src/icons/*.svg)
-SVGIMAGES32  := $(SVGIMAGESSRC:images-src/%.svg=$(IMAGES32_DEST)/%.png) $(SVGICONSSRC:images-src/icons/%.svg=$(IMAGES32_DEST)/%.png)
-SVGIMAGES64  := $(SVGIMAGESSRC:images-src/%.svg=$(IMAGES64_DEST)/%.png) $(SVGICONSSRC:images-src/icons/%.svg=$(IMAGES64_DEST)/%.png)
-SVGIMAGES128 := $(SVGIMAGESSRC:images-src/%.svg=$(IMAGES128_DEST)/%.png) $(SVGICONSSRC:images-src/icons/%.svg=$(IMAGES128_DEST)/%.png)
+
+# Find all rabbits images, check whether the equivalent rabbot image
+# exists.  If not, add it to a list of images to generate.
+SVGRABBITS := $(wildcard images-src/rabbit_*.svg)
+bit2bot = $(subst rabbit,rabbot,$(1))
+botexists = $(wildcard $(call bit2bot,$(1)))
+SVGGENERATERABBOTS := $(foreach F,$(SVGRABBITS),$(if $(call botexists,$(F)),,$(subst images-src,$(IMAGESSVGGEN_DEST),$(call bit2bot,$(F)))))
+
+SVGIMAGES32  := $(SVGIMAGESSRC:images-src/%.svg=$(IMAGES32_DEST)/%.png) $(SVGICONSSRC:images-src/icons/%.svg=$(IMAGES32_DEST)/%.png) $(SVGGENERATERABBOTS:$(IMAGESSVGGEN_DEST)/%.svg=$(IMAGES32_DEST)/%.png)
+SVGIMAGES64  := $(SVGIMAGESSRC:images-src/%.svg=$(IMAGES64_DEST)/%.png) $(SVGICONSSRC:images-src/icons/%.svg=$(IMAGES64_DEST)/%.png) $(SVGGENERATERABBOTS:$(IMAGESSVGGEN_DEST)/%.svg=$(IMAGES64_DEST)/%.png)
+SVGIMAGES128 := $(SVGIMAGESSRC:images-src/%.svg=$(IMAGES128_DEST)/%.png) $(SVGICONSSRC:images-src/icons/%.svg=$(IMAGES128_DEST)/%.png) $(SVGGENERATERABBOTS:$(IMAGESSVGGEN_DEST)/%.svg=$(IMAGES128_DEST)/%.png)
 
 PNGIMAGESSRC := $(wildcard images-src/*.png)
 PNGIMAGES32  := $(PNGIMAGESSRC:images-src/%.png=$(IMAGES32_DEST)/%.png)
@@ -42,9 +54,9 @@ ANDROIDSOUNDSOGG := $(SOUNDSSRC:sounds-src/%.flac=$(ANDROIDSOUNDSOGG_DEST)/%.ogg
 MUSICWAV := $(MUSICSRC:music-src/%.flac=$(MUSICWAV_DEST)/%.wav)
 ANDROIDMUSICOGG := $(MUSICSRC:music-src/%.flac=$(ANDROIDMUSICOGG_DEST)/%.ogg)
 
-SVGANDROIDIMAGES32  := $(SVGIMAGESSRC:images-src/%.svg=$(ANDROIDIMAGES32_DEST)/%.png)
-SVGANDROIDIMAGES64  := $(SVGIMAGESSRC:images-src/%.svg=$(ANDROIDIMAGES64_DEST)/%.png)
-SVGANDROIDIMAGES128 := $(SVGIMAGESSRC:images-src/%.svg=$(ANDROIDIMAGES128_DEST)/%.png)
+SVGANDROIDIMAGES32  := $(SVGIMAGESSRC:images-src/%.svg=$(ANDROIDIMAGES32_DEST)/%.png) $(SVGGENERATERABBOTS:$(IMAGESSVGGEN_DEST)/%.svg=$(ANDROIDIMAGES32_DEST)/%.png)
+SVGANDROIDIMAGES64  := $(SVGIMAGESSRC:images-src/%.svg=$(ANDROIDIMAGES64_DEST)/%.png) $(SVGGENERATERABBOTS:$(IMAGESSVGGEN_DEST)/%.svg=$(ANDROIDIMAGES64_DEST)/%.png)
+SVGANDROIDIMAGES128 := $(SVGIMAGESSRC:images-src/%.svg=$(ANDROIDIMAGES128_DEST)/%.png) $(SVGGENERATERABBOTS:$(IMAGESSVGGEN_DEST)/%.svg=$(ANDROIDIMAGES128_DEST)/%.png)
 PNGANDROIDIMAGES32  := $(PNGIMAGESSRC:images-src/%.png=$(ANDROIDIMAGES32_DEST)/%.png)
 PNGANDROIDIMAGES64  := $(PNGIMAGESSRC:images-src/%.png=$(ANDROIDIMAGES64_DEST)/%.png)
 PNGANDROIDIMAGES128 := $(PNGIMAGESSRC:images-src/%.png=$(ANDROIDIMAGES128_DEST)/%.png)
@@ -54,78 +66,120 @@ SVGANDROIDICONSHDPI  := $(SVGICONSSRC:images-src/icons/%.svg=$(ANDROIDICONSHDPI_
 SVGANDROIDICONSXHDPI := $(SVGICONSSRC:images-src/icons/%.svg=$(ANDROIDICONSXHDPI_DEST)/%.png)
 
 ANIMATIONS_DIR := rabbit-escape-render/src/rabbitescape/render/animations
-LEVELS_DIRS := $(wildcard rabbit-escape-engine/src/rabbitescape/levels/*) \
-               $(wildcard rabbit-escape-engine/test/rabbitescape/levels/*)
+RABBIT_ANIMATIONS := $(wildcard $(ANIMATIONS_DIR)/rabbit_*.rea)
+RABBOT_ANIMATIONS := $(subst animations/rabbit,animations/rabbot,$(RABBIT_ANIMATIONS))
+
+LEVELS_DIRS := $(shell \
+	find rabbit-escape-engine -type d \
+		-regex '.*/\(src\|test\)/rabbitescape/levels/[^/]*' \
+	)
 
 $(SOUNDSWAV_DEST)/%.wav: sounds-src/%.flac
-	mkdir -p $(SOUNDSWAV_DEST); sox $< $@
+	@echo ".. Generating $@"
+	@mkdir -p $(SOUNDSWAV_DEST); sox $< $@
 
 $(ANDROIDSOUNDSOGG_DEST)/%.ogg: sounds-src/%.flac
-	mkdir -p $(ANDROIDSOUNDSOGG_DEST); sox $< $@
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDSOUNDSOGG_DEST); sox $< $@
 
 $(MUSICWAV_DEST)/%.wav: music-src/%.flac
-	mkdir -p $(MUSICWAV_DEST); sox $< $@ vol 0.4
+	@echo ".. Generating $@"
+	@mkdir -p $(MUSICWAV_DEST); sox $< $@ vol 0.4
 
 $(ANDROIDMUSICOGG_DEST)/%.ogg: music-src/%.flac
-	mkdir -p $(ANDROIDMUSICOGG_DEST); sox $< $@
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDMUSICOGG_DEST); sox $< $@
+
+$(IMAGESSVGGEN_DEST)/rabbot_%.svg: images-src/rabbit_%.svg
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGESSVGGEN_DEST); ./build-scripts/rabbit-to-rabbot < $< > $@
+
+$(IMAGES32_DEST)/%.png: $(IMAGESSVGGEN_DEST)/%.svg
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES32_DEST); inkscape $< --export-png=$@ --export-dpi=90 > /dev/null
 
 $(IMAGES32_DEST)/%.png: images-src/%.svg
-	mkdir -p $(IMAGES32_DEST); inkscape $< --export-png=$@ --export-dpi=90
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES32_DEST); inkscape $< --export-png=$@ --export-dpi=90 > /dev/null
+
+$(IMAGES64_DEST)/%.png: $(IMAGESSVGGEN_DEST)/%.svg
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES64_DEST); inkscape $< --export-png=$@ --export-dpi=180 > /dev/null
 
 $(IMAGES64_DEST)/%.png: images-src/%.svg
-	mkdir -p $(IMAGES64_DEST); inkscape $< --export-png=$@ --export-dpi=180
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES64_DEST); inkscape $< --export-png=$@ --export-dpi=180 > /dev/null
+
+$(IMAGES128_DEST)/%.png: $(IMAGESSVGGEN_DEST)/%.svg
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES128_DEST); inkscape $< --export-png=$@ --export-dpi=360 > /dev/null
 
 $(IMAGES128_DEST)/%.png: images-src/%.svg
-	mkdir -p $(IMAGES128_DEST); inkscape $< --export-png=$@ --export-dpi=360
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES128_DEST); inkscape $< --export-png=$@ --export-dpi=360 > /dev/null
 
 $(IMAGES32_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(IMAGES32_DEST); inkscape $< --export-png=$@ --export-dpi=90
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES32_DEST); inkscape $< --export-png=$@ --export-dpi=90 > /dev/null
 
 $(IMAGES64_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(IMAGES64_DEST); inkscape $< --export-png=$@ --export-dpi=180
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES64_DEST); inkscape $< --export-png=$@ --export-dpi=180 > /dev/null
 
 $(IMAGES128_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(IMAGES128_DEST); inkscape $< --export-png=$@ --export-dpi=360
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES128_DEST); inkscape $< --export-png=$@ --export-dpi=360 > /dev/null
 
 
 $(IMAGES32_DEST)/%.png: images-src/%.png
-	mkdir -p $(IMAGES32_DEST); convert $< -resize 12.5% $@
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES32_DEST); convert $< -resize 12.5% $@
 
 $(IMAGES64_DEST)/%.png: images-src/%.png
-	mkdir -p $(IMAGES64_DEST); convert $< -resize 25% $@
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES64_DEST); convert $< -resize 25% $@
 
 $(IMAGES128_DEST)/%.png: images-src/%.png
-	mkdir -p $(IMAGES128_DEST); convert $< -resize 50% $@
+	@echo ".. Generating $@"
+	@mkdir -p $(IMAGES128_DEST); convert $< -resize 50% $@
 
 
 # Android images are just copies of the desktop ones
 
 $(ANDROIDIMAGES32_DEST)/%.png: $(IMAGES32_DEST)/%.png
-	mkdir -p $(ANDROIDIMAGES32_DEST); cp $< $@
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDIMAGES32_DEST); cp $< $@
 
 $(ANDROIDIMAGES64_DEST)/%.png: $(IMAGES64_DEST)/%.png
-	mkdir -p $(ANDROIDIMAGES64_DEST); cp $< $@
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDIMAGES64_DEST); cp $< $@
 
 $(ANDROIDIMAGES128_DEST)/%.png: $(IMAGES128_DEST)/%.png
-	mkdir -p $(ANDROIDIMAGES128_DEST); cp $< $@
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDIMAGES128_DEST); cp $< $@
 
 
 # Android icons
 
 $(ANDROIDICONSMDPI_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(ANDROIDICONSMDPI_DEST); inkscape $< --export-png=$@ --export-dpi=90
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDICONSMDPI_DEST); inkscape $< --export-png=$@ --export-dpi=90 > /dev/null
 
 $(ANDROIDICONSHDPI_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(ANDROIDICONSHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=135
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDICONSHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=135 > /dev/null
 
 $(ANDROIDICONSXHDPI_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(ANDROIDICONSXHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=180
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDICONSXHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=180 > /dev/null
 
 $(ANDROIDICONSXXHDPI_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(ANDROIDICONSXXHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=270
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDICONSXXHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=270 > /dev/null
 
 $(ANDROIDICONSXXXHDPI_DEST)/%.png: images-src/icons/%.svg
-	mkdir -p $(ANDROIDICONSXXXHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=360
+	@echo ".. Generating $@"
+	@mkdir -p $(ANDROIDICONSXXXHDPI_DEST); inkscape $< --export-png=$@ --export-dpi=360 > /dev/null
 
 
 # Will be needed again if we have some icons drawn as .png
@@ -136,42 +190,60 @@ $(ANDROIDICONSXXXHDPI_DEST)/%.png: images-src/icons/%.svg
 #$(MUSICOGG_DEST)/%.ogg: music-src/%.flac
 #	mkdir -p $(MUSICOGG_DEST); avconv -i $< -c:a libvorbis -q:a 1 $@
 
-VERSION=0.6.1
+VERSION=0.10.3
 
 ifndef MAKECMDGOALS
 MAKECMDGOALS = all
 endif
 
-all: compile
+all: compile android-compile
 
 # Fails if the Makefile contains any warnings
 no-make-warnings:
-	! make -n $(MAKECMDGOALS) 2>&1 >/dev/null | grep warning
+	@echo ". Checking for warnings in Makefile"
+	@! make -n $(MAKECMDGOALS) 2>&1 >/dev/null | grep warning
+
+snapshot: snapshot-version-set clean slowtest android-pre dist
+	git tag v${SNAPSHOT_VERSION}
+	rm dist/rabbit-escape-generic.jar
+	rename 's/${VERSION}/${SNAPSHOT_VERSION}/' dist/rabbit-escape-*
+	scp dist/rabbit-escape-* dreamhost:artificialworlds.net/rabbit-escape/snapshots/
+
+snapshot-version-set:
+ifndef SNAPSHOT_VERSION
+	$(error Run like this: SNAPSHOT_VERSION=0.8.0.3 make snapshot)
+endif
 
 dist: no-make-warnings dist-swing dist-android-release-signed
 
 dist-swing: dist/rabbit-escape-${VERSION}.jar
 
-dist/rabbit-escape-generic.jar: compile
-	mkdir -p dist
-	rm -f dist/rabbit-escape-generic.jar
-	cd rabbit-escape-engine/bin; \
+dist/rabbit-escape-generic.jar: compile-noui
+	@echo ". Building generic jar $@"
+	@mkdir -p dist
+	@rm -f dist/rabbit-escape-generic.jar
+	@cd rabbit-escape-engine/bin; \
 		jar -cf ../../dist/rabbit-escape-generic.jar `find ./`
-	cd rabbit-escape-render/bin; \
+	@cd rabbit-escape-render/bin; \
 		jar -uf ../../dist/rabbit-escape-generic.jar `find ./`
+	@chmod ug+rw $@
+	@chmod o+r $@
 
 dist/rabbit-escape-${VERSION}.jar: compile
-	mkdir -p dist
-	rm -f dist/rabbit-escape-${VERSION}.jar
-	cd rabbit-escape-engine/bin; \
+	@echo ". Building Swing jar $@"
+	@mkdir -p dist
+	@rm -f dist/rabbit-escape-${VERSION}.jar
+	@cd rabbit-escape-engine/bin; \
 		jar -cf ../../dist/rabbit-escape-${VERSION}.jar `find ./`
-	cd rabbit-escape-render/bin; \
+	@cd rabbit-escape-render/bin; \
 		jar -uf ../../dist/rabbit-escape-${VERSION}.jar `find ./`
-	cd rabbit-escape-ui-text/bin; \
+	@cd rabbit-escape-ui-text/bin; \
 		jar -uf ../../dist/rabbit-escape-${VERSION}.jar `find ./`
-	cd rabbit-escape-ui-swing/bin; \
+	@cd rabbit-escape-ui-swing/bin; \
 		jar -uf ../../dist/rabbit-escape-${VERSION}.jar `find ./`
-	jar -ufm dist/rabbit-escape-${VERSION}.jar MANIFEST.MF
+	@jar -ufm dist/rabbit-escape-${VERSION}.jar MANIFEST.MF
+	@chmod ug+rwx $@
+	@chmod o+r $@
 
 images: no-make-warnings $(SVGIMAGES32) $(PNGIMAGES32) $(SVGIMAGES64) $(PNGIMAGES64) $(SVGIMAGES128) $(PNGIMAGES128)
 
@@ -179,36 +251,64 @@ sounds: no-make-warnings $(SOUNDSWAV)
 
 music: no-make-warnings $(MUSICWAV)
 
-%/ls.txt: %/*.re*
-	ls $(@D) --hide=ls.txt > $(@D)/ls.txt
+%/ls.txt: %/*.rea
+	@ls $(@D) --hide=ls.txt > $(@D)/ls.txt
 
-animations: no-make-warnings $(ANIMATIONS_DIR)/ls.txt
+%/levels.txt: %/*.rel
+	@./build-scripts/levelnames $(@D) > $(@D)/levels.txt
 
-levels: no-make-warnings $(patsubst %, %/ls.txt, $(LEVELS_DIRS))
+%/levels.txt: %/*/*.rel
+	@./build-scripts/levelnames $(@D) > $(@D)/levels.txt
+
+
+$(ANIMATIONS_DIR)/rabbot%.rea: $(ANIMATIONS_DIR)/rabbit%.rea
+	./build-scripts/rea-rabbit-to-rabbot < $< > $@
+
+animations: no-make-warnings $(ANIMATIONS_DIR)/ls.txt $(RABBOT_ANIMATIONS)
+	@echo ". Generating animations list"
+
+levels: no-make-warnings $(patsubst %, %/levels.txt, $(LEVELS_DIRS))
+	@echo ". Generating level lists"
 
 versioncheck:
-	grep "version = \"${VERSION}\"" rabbit-escape-engine/src/rabbitescape/engine/menu/AboutText.java
-	grep "versionName \"${VERSION}\"" rabbit-escape-ui-android/app/build.gradle
+	@echo ". Checking version number (${VERSION}) is consistent everywhere"
+	@grep "version = \"${VERSION}\"" \
+		rabbit-escape-engine/src/rabbitescape/engine/menu/AboutText.java \
+		> /dev/null
+	@grep "versionName \"${VERSION}\"" \
+		rabbit-escape-ui-android/app/build.gradle > /dev/null
 
 # Fails if we use java.awt in the engine code - this is not available on Android
 no-awt-in-engine:
-	! find rabbit-escape-engine/src -name "*.java" -print0 | xargs -0 grep 'java\.awt'
-	! find rabbit-escape-render/src -name "*.java" -print0 | xargs -0 grep 'java\.awt'
+	@echo ". Checking for use of java.awt in engine code"
+	@! find rabbit-escape-engine/src -name "*.java" -print0 | xargs -0 grep 'java\.awt'
+	@! find rabbit-escape-render/src -name "*.java" -print0 | xargs -0 grep 'java\.awt'
 
-compile: no-make-warnings images sounds music animations levels versioncheck no-awt-in-engine
-	ant compile
+compile-noui: \
+		no-make-warnings \
+		versioncheck \
+		no-awt-in-engine \
+		animations \
+		levels
+	@echo ". Compiling"
+	@ant -quiet compile
+
+compile: images sounds music compile-noui
 
 clean: no-make-warnings
-	- rm -r \
-		rabbit-escape-engine/bin/* \
-		rabbit-escape-render/bin/* \
-		rabbit-escape-ui-text/bin/* \
-		rabbit-escape-ui-swing/bin/*
-	find ./ -name "ls.txt" -delete
-	- rm -r dist
+	@echo ". Cleaning compiled Java, lists and dist dir"
+	@mkdir -p rabbit-escape-engine/bin && touch rabbit-escape-engine/bin/touchfile && rm -r rabbit-escape-engine/bin/*
+	@mkdir -p rabbit-escape-render/bin && touch rabbit-escape-render/bin/touchfile && rm -r rabbit-escape-render/bin/*
+	@mkdir -p rabbit-escape-ui-text/bin/touchfile && touch rabbit-escape-ui-text/bin/touchfile && rm -r rabbit-escape-ui-text/bin/*
+	@mkdir -p rabbit-escape-ui-swing/bin/touchfile && touch rabbit-escape-ui-swing/bin/touchfile && rm -r rabbit-escape-ui-swing/bin/*
+	@find ./ -name "ls.txt" -delete
+	@find ./ -name "levels.txt" -delete
+	@find ./ -empty -type d -delete
+	@mkdir -p dist && rm -r dist
 
 clean-images: no-make-warnings
 	- rm \
+		$(IMAGESSVGGEN_DEST)/* \
 		$(IMAGES32_DEST)/* \
 		$(IMAGES64_DEST)/* \
 		$(IMAGES128_DEST)/* \
@@ -229,15 +329,18 @@ clean-music: no-make-warnings
 	- rm $(MUSICWAV_DEST)/*
 	- rm $(ANDROIDMUSICOGG_DEST)/*
 
-clean-all: clean clean-images clean-sounds clean-music clean-doxygen
+clean-all: clean clean-images clean-sounds clean-music clean-doxygen clean-android
 
-run: compile
+remove-trailing:
+	git status --porcelain | sed 's_^...__' | grep '\.java$$' - | xargs perl -p -i -e 's/[ \t]+$$//'
+
+run: compile-noui
+	java -cp $(CLASSPATH) rabbitescape.ui.text.TextMain --noinput test/level_01.rel
+
+runinteractive: compile-noui
 	java -cp $(CLASSPATH) rabbitescape.ui.text.TextMain test/level_01.rel
 
-runinteractive: compile
-	java -cp $(CLASSPATH) rabbitescape.ui.text.TextMain test/level_01.rel --interactive
-
-runmenu: compile
+runmenu: compile-noui
 	java -cp $(CLASSPATH) rabbitescape.ui.text.TextMain
 
 rungui: compile
@@ -250,15 +353,33 @@ runat: compile
 	java -cp $(CLASSPATH) rabbitescape.ui.swing.AnimationTester
 
 test: compile
-	# Work around what looks like an Ant 1.9 bug by including the classpath here
-	CLASSPATH=lib/org.hamcrest.core_1.3.0.jar:lib/junit.jar ant test
+	@echo ". Running unit tests"
+	@# Work around what looks like an Ant 1.9 bug by including the classpath here
+	@CLASSPATH=lib/org.hamcrest.core_1.3.0.jar:lib/junit.jar ant -quiet test
+
+test-verbose: compile
+	@echo ". Running unit tests"
+	@# Work around what looks like an Ant 1.9 bug by including the classpath here
+	@CLASSPATH=lib/org.hamcrest.core_1.3.0.jar:lib/junit.jar ant test
+
+slowtest: test android-debug-test slowtest-run
+
+# Run slow tests without building first
+slowtest-run: expecttest android-smoke-tests
+
+expecttest:
+	@echo ". Running expect tests"
+	./expecttests/expecttests
 
 # Android
 # -------
 
+GRADLE := ./gradlew --daemon -q
+
 rabbit-escape-ui-android/app/libs/rabbit-escape-generic.jar: dist/rabbit-escape-generic.jar
-	mkdir -p rabbit-escape-ui-android/app/libs/
-	cp dist/rabbit-escape-generic.jar rabbit-escape-ui-android/app/libs/
+	@echo ". Copying generic jar into Android workspace $@"
+	@mkdir -p rabbit-escape-ui-android/app/libs/
+	@cp dist/rabbit-escape-generic.jar rabbit-escape-ui-android/app/libs/
 
 android-images-32:  $(SVGANDROIDIMAGES32)  $(PNGANDROIDIMAGES32)
 android-images-64:  $(SVGANDROIDIMAGES64)  $(PNGANDROIDIMAGES64)
@@ -267,8 +388,8 @@ android-images-128: $(SVGANDROIDIMAGES128) $(PNGANDROIDIMAGES128)
 android-icons-mdpi:    $(SVGANDROIDICONSMDPI)
 android-icons-hdpi:    $(SVGANDROIDICONSHDPI)
 android-icons-xhdpi:   $(SVGANDROIDICONSXHDPI)
-android-icons-xxhdpi:  $(ANDROIDICONSXXHDPI_DEST)/ic_launcher.png
-android-icons-xxxhdpi: $(ANDROIDICONSXXXHDPI_DEST)/ic_launcher.png
+android-icons-xxhdpi:  $(ANDROIDICONSXXHDPI_DEST)/ic_launcher.png $(ANDROIDICONSXXHDPI_DEST)/ic_launcher_free.png
+android-icons-xxxhdpi: $(ANDROIDICONSXXXHDPI_DEST)/ic_launcher.png $(ANDROIDICONSXXXHDPI_DEST)/ic_launcher_free.png
 
 android-images: \
 	android-images-32 \
@@ -290,35 +411,80 @@ android-pre: \
 	android-music \
 	rabbit-escape-ui-android/app/libs/rabbit-escape-generic.jar
 
+# Special target for F-Droid that does not build the sound or music files,
+# to avoid needing sox to be installed on the F-Droid server.
+android-pre-fdroid: \
+	android-images \
+	rabbit-escape-ui-android/app/libs/rabbit-escape-generic.jar
 
-android-debug: app/build/outputs/apk/app-debug.apk
+android-compile: android-pre
+	@echo ". Compiling Android code"
+	@cd rabbit-escape-ui-android && \
+	${GRADLE} compilePaidDebugSources
 
-app/build/outputs/apk/app-debug.apk: android-pre
-	cd rabbit-escape-ui-android && ./gradlew assembleDebug
+android-debug: \
+	rabbit-escape-ui-android/app/build/outputs/apk/app-paid-debug.apk \
+	rabbit-escape-ui-android/app/build/outputs/apk/app-free-debug.apk
 
-dist-android-release-signed: dist/rabbit-escape-${VERSION}.apk
+android-debug-test: android-debug \
+	rabbit-escape-ui-android/app/build/outputs/apk/app-paid-debug-androidTest.apk \
+	rabbit-escape-ui-android/app/build/outputs/apk/app-free-debug-androidTest.apk
+
+rabbit-escape-ui-android/app/build/outputs/apk/app-paid-debug.apk: android-pre
+	@echo ". Building $@"
+	@cd rabbit-escape-ui-android && ${GRADLE} assemblePaidDebug
+
+rabbit-escape-ui-android/app/build/outputs/apk/app-free-debug.apk: android-pre
+	@echo ". Building $@"
+	@cd rabbit-escape-ui-android && ${GRADLE} assembleFreeDebug
+
+rabbit-escape-ui-android/app/build/outputs/apk/app-free-debug-androidTest.apk: android-pre
+	@echo ". Building $@"
+	@cd rabbit-escape-ui-android && ${GRADLE} assembleFreeDebugAndroidTest
+
+rabbit-escape-ui-android/app/build/outputs/apk/app-paid-debug-androidTest.apk: android-pre
+	@echo ". Building $@"
+	@cd rabbit-escape-ui-android && ${GRADLE} assemblePaidDebugAndroidTest
 
 KEY_STORE_PASSWORD_FILE := $(HOME)/pw/android-key-store-password.txt
 KEY_PASSWORD_FILE := $(HOME)/pw/android-key-password.txt
 
-dist/rabbit-escape-${VERSION}.apk: android-pre
-	# Check the password files exist before we start
-	ls $(KEY_STORE_PASSWORD_FILE) && \
-	ls $(KEY_PASSWORD_FILE) && \
+# ls commands are to check that the password files exist
+dist-android-release-signed: android-pre
+	@echo ". Building and signing release apk dist/rabbit-escape-${VERSION}.apk and dist/rabbit-escape-free-${VERSION}.apk"
+	@ls $(KEY_STORE_PASSWORD_FILE) > /dev/null && \
+	ls $(KEY_PASSWORD_FILE) > /dev/null && \
 	cd rabbit-escape-ui-android && \
 	KEY_STORE_PASSWORD=`cat $(KEY_STORE_PASSWORD_FILE)` \
 	KEY_PASSWORD=`cat $(KEY_PASSWORD_FILE)` \
-	./gradlew assembleRelease && \
-	mv app/build/outputs/apk/app-release.apk ../dist/rabbit-escape-${VERSION}.apk
+	${GRADLE} assembleRelease && \
+	mv app/build/outputs/apk/app-paid-release.apk ../dist/rabbit-escape-${VERSION}.apk && \
+	mv app/build/outputs/apk/app-free-release.apk ../dist/rabbit-escape-free-${VERSION}.apk
+
+android-smoke-tests: android-debug-test
+	@echo ". Running Android smoke tests"
+	./build-scripts/android-start-emulator "android-10" "system-images;android-10;default;x86" "3.2in QVGA (ADP2)"
+	./build-scripts/android-test "free" "app-free-debug"
+	./build-scripts/android-test "" "app-paid-debug"
+	./build-scripts/android-stop-emulator
+
+clean-android:
+	cd rabbit-escape-ui-android && ${GRADLE} clean
+
+# Docs
+# ----
 
 # Requires sudo apt-get install doxygen graphviz
 doxygen:
-	mkdir -p doc/doxygen
-	echo PROJECT_NUMBER=$$(git log --date-order --tags --simplify-by-decoration --pretty=format:"%ci_%d" -n 1) | tr " " "_" | cat Doxyfile - | doxygen -
+	@echo ". Building doxygen docs in doc/doxygen"
+	@mkdir -p doc/doxygen
+	@echo PROJECT_NUMBER=$$(git log --date-order --tags --simplify-by-decoration --pretty=format:"%ci_%d" -n 1) | tr " " "_" | cat Doxyfile - | doxygen - > /dev/null
 
 doxygen-upload: doxygen
-	rsync --delete -r doc/doxygen/html/ dreamhost:artificialworlds.net/rabbit-escape/doxygen/
+	@echo ". Uploading doxygen docs"
+	@rsync --delete -r doc/doxygen/html/ dreamhost:artificialworlds.net/rabbit-escape/doxygen/
 
 clean-doxygen:
-	- rm -r doc/doxygen
+	@echo ". Cleaning doxygen files"
+	@mkdir -p doc/doxygen && rm -r doc/doxygen
 

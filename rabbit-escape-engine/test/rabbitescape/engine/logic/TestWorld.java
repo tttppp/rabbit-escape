@@ -1,15 +1,22 @@
 package rabbitescape.engine.logic;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.CoreMatchers.*;
-import static rabbitescape.engine.util.Util.*;
-import static rabbitescape.engine.Tools.*;
-import static rabbitescape.engine.textworld.TextWorldManip.*;
-import static rabbitescape.engine.World.CompletionState.*;
-import static rabbitescape.engine.ChangeDescription.State.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static rabbitescape.engine.ChangeDescription.State.RABBIT_BRIDGING_RIGHT_1;
+import static rabbitescape.engine.ChangeDescription.State.RABBIT_WALKING_RIGHT;
+import static rabbitescape.engine.Tools.equalTo;
+import static rabbitescape.engine.World.CompletionState.LOST;
+import static rabbitescape.engine.World.CompletionState.RUNNING;
+import static rabbitescape.engine.World.CompletionState.WON;
+import static rabbitescape.engine.textworld.TextWorldManip.createWorld;
+import static rabbitescape.engine.util.Util.range;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -19,6 +26,8 @@ import rabbitescape.engine.World;
 import rabbitescape.engine.World.DontStepAfterFinish;
 import rabbitescape.engine.WorldStatsListener;
 import rabbitescape.engine.textworld.TextWorldManip;
+import rabbitescape.engine.util.Position;
+import rabbitescape.engine.util.WaterUtil;
 
 public class TestWorld
 {
@@ -84,6 +93,68 @@ public class TestWorld
     }
 
     @Test
+    public void World_reports_when_finished_no_live_rabbits_even_if_rabbots()
+    {
+        World world = createWorld(
+            ":num_rabbits=5",
+            ":rabbit_delay=5",
+            " Q    ",
+            " O #y#",  // Exit right below entrance, trapped rabbot
+            "######"
+        );
+
+        world.step(); // First one over the exit
+
+        fiveSteps( world );
+        assertThat( world.completionState(), equalTo( RUNNING ) );
+
+        fiveSteps( world );
+        assertThat( world.completionState(), equalTo( RUNNING ) );
+
+        fiveSteps( world );
+        assertThat( world.completionState(), equalTo( RUNNING ) );
+
+        fiveSteps( world );
+        assertThat( world.completionState(), equalTo( RUNNING ) );
+
+        // Fifth one over the exit: send it in
+        world.step();
+
+        // We should now be finished
+        assertThat( world.completionState(), equalTo( WON ) );
+    }
+
+    @Test
+    public void World_reports_existing_rabbits_as_out_number_out_even_if_rabbots_and_existing_rabbits()
+    {
+        World world = createWorld(
+            "#r#y#",  // A rabbit and a rabbot
+            "#####"
+        );
+
+        assertThat( world.numRabbitsOut(), equalTo( 1 ) );
+    }
+
+    @Test
+    public void World_reports_existing_and_new_rabbots_as_out()
+    {
+        World world = createWorld(
+            ":num_rabbits=2",
+            ":rabbit_delay=1",
+            " Q #r#",
+            "   ###",
+            "# ##y#",  // New rabbits from entrance, and existing ones
+            "######"
+        );
+
+        assertThat( world.numRabbitsOut(), equalTo( 1 ) );
+        world.step();
+        assertThat( world.numRabbitsOut(), equalTo( 2 ) );
+        world.step();
+        assertThat( world.numRabbitsOut(), equalTo( 3 ) );
+    }
+
+    @Test
     public void World_reports_won_when_enough_rabbits_saved()
     {
         World world = createWorld(
@@ -111,6 +182,51 @@ public class TestWorld
 
         // We should now be finished
         assertThat( world.completionState(), equalTo( LOST ) );
+    }
+
+    @Test
+    public void Empty_world_reports_lost_immediately()
+    {
+        World world = createWorld(
+            ":num_rabbits=0",
+            ":num_saved=0",
+            ":num_to_save=1",
+            "   ",
+            "###"
+        );
+
+        // We should now be finished
+        assertThat( world.completionState(), equalTo( LOST ) );
+    }
+
+    @Test
+    public void World_with_only_rabbots_reports_lost_immediately()
+    {
+        World world = createWorld(
+            ":num_rabbits=0",
+            ":num_saved=0",
+            ":num_to_save=1",
+            " y ",
+            "###"
+        );
+
+        // We should now be finished
+        assertThat( world.completionState(), equalTo( LOST ) );
+    }
+
+    @Test
+    public void World_with_only_rabbots_reports_zero_rabbits_out()
+    {
+        World world = createWorld(
+            ":num_rabbits=0",
+            ":num_saved=0",
+            ":num_to_save=1",
+            " y ",
+            "###"
+        );
+
+        // We should now be finished
+        assertThat( world.numRabbitsOut(), equalTo( 0 ) );
     }
 
     @Test
@@ -365,6 +481,21 @@ public class TestWorld
         assertThat( statsListener.calls.size(), equalTo( 2 ) );
         assertThat( statsListener.calls.get( 1 ).num_saved,   equalTo( 1 ) );
         assertThat( statsListener.calls.get( 1 ).num_to_save, equalTo( 7 ) );
+    }
+
+    @Test
+    public void Water_contents_can_be_retrieved()
+    {
+        World world = createWorld(
+            "#N#n# #",
+            "#######"
+        );
+
+        Map<Position, Integer> waterContents = world.getWaterContents();
+        assertThat( waterContents.get( new Position( 1, 0 ) ), equalTo( WaterUtil.MAX_CAPACITY ) );
+        assertThat( waterContents.get( new Position( 3, 0 ) ), equalTo( WaterUtil.HALF_CAPACITY ) );
+        // There should be no reference to the empty region.
+        assertThat( waterContents.containsKey( new Position( 5, 0 ) ), equalTo( false ) );
     }
 
     // ---

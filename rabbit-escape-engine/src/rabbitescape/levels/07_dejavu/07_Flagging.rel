@@ -1,0 +1,24 @@
+:name=Flagging
+:description=Are we nearly there yet?
+:author_name=tttppp
+:author_url=https://github.com/tttppp
+:hint.1=Climb one rabbit up and find a way to get all of them down.
+:hint.2=Dig away the right-hand edge of the flag.  Find a way to stop digging before the very bottom.
+:hint.3=Bridge just before the last piece of the right-hand edge of the flag is gone.  After the bridge has joined the wall, dig through it to allow rabbits to drop safely to the ground.  Climb all the other rabbits up to follow your new safe path to the exit.
+:solution.1=climb;(3,7);dig;(9,2);bridge;17;(9,5);climb;(3,7);(3,7);(3,7);(3,7);dig;(10,5);until:WON
+:num_rabbits=5
+:num_to_save=5
+:rabbit_delay=10
+:bridge=1
+:climb=5
+:dig=2
+:music=tryad-the_final_rewind
+##############
+#            #
+#            #
+#   ######   #
+#   ######   #
+# Q ######   #
+#   ######   #
+#   #      O #
+##############

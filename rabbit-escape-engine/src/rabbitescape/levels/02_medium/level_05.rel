@@ -1,0 +1,29 @@
+:name=Full Bucket
+:description=No drips here?
+:author_name=Andy Balaam
+:author_url=http://artificialworlds.net/rabbit-escape/
+:hint.1=You can't fall the whole way down, even if you dig.
+:hint.2=Break their fall halfway down.
+:hint.3=Dig down into the middle of the bucket. After digging three squares, turn the digger into a basher.
+:solution.1=dig;(4,3);7;bash&(4,6);85
+:num_rabbits=20
+:num_to_save=10
+:bash=3
+:bridge=3
+:climb=3
+:block=3
+:dig=3
+:explode=3
+:music=tryad-lovely
+################
+# Q            #
+#              #
+#              #
+# ########     #
+#   #####      #
+#   #####      #
+#   #####      #
+#   #####      #
+#          /#\O#
+#         /#####
+################

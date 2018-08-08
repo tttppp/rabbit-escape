@@ -2,16 +2,22 @@ package rabbitescape.render;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import rabbitescape.engine.*;
-import rabbitescape.render.androidlike.Bitmap;
+import rabbitescape.engine.util.Util;
 
-public class SpriteAnimator<T extends Bitmap>
+public class SpriteAnimator
 {
     private final World world;
-    private final BitmapCache<T> bitmapCache;
     private final AnimationCache animationCache;
+
+    private static final String[] metal_block = new String[]
+        {
+            "metal_block_1",
+            "metal_block_2",
+            "metal_block_3",
+            "metal_block_4",
+        };
 
     private static final String[] land_block = new String[]
     {
@@ -42,25 +48,23 @@ public class SpriteAnimator<T extends Bitmap>
 
     public SpriteAnimator(
         World world,
-        BitmapCache<T> bitmapCache,
         AnimationCache animationCache
     )
     {
         this.world = world;
-        this.bitmapCache = bitmapCache;
         this.animationCache = animationCache;
     }
 
-    public List<Sprite<T>> getSprites( int frameNum )
+    public List<Sprite> getSprites( int frameNum )
     {
-        List<Sprite<T>> ret = new ArrayList<>();
+        List<Sprite> ret = new ArrayList<>();
 
-        for ( Block block : world.blocks )
+        for ( Block block : world.blockTable )
         {
             addBlock( block, ret );
         }
 
-        for ( Thing thing : world.things )
+        for ( Thing thing : Util.filterOut( world.things, Fire.class ) )
         {
             addThing( frameNum, thing, null, ret );
         }
@@ -68,6 +72,11 @@ public class SpriteAnimator<T extends Bitmap>
         for ( Rabbit rabbit : world.rabbits )
         {
             addThing( frameNum, rabbit, null, ret );
+        }
+
+        for ( Thing thing : Util.filterIn( world.things, Fire.class ) )
+        {
+            addThing( frameNum, thing, null, ret );
         }
 
         for ( Thing thing : world.changes.tokensAboutToAppear() )
@@ -84,14 +93,16 @@ public class SpriteAnimator<T extends Bitmap>
             }
         }
 
+        VoidMarker.mark( world, ret, world.voidStyle );
+
         return ret;
     }
 
-    private void addBlock( Block block, List<Sprite<T>> ret )
+    private void addBlock( Block block, List<Sprite> ret )
     {
         ret.add(
-            new Sprite<T>(
-                bitmapForBlock( block ),
+            new Sprite(
+                bitmapNameForBlock( block ),
                 null,
                 block.x,
                 block.y,
@@ -105,24 +116,24 @@ public class SpriteAnimator<T extends Bitmap>
         int frameNum,
         Thing thing,
         String soundEffectOverride,
-        List<Sprite<T>> ret
+        List<Sprite> ret
     )
     {
         Frame frame = frameForThing( frameNum, thing );
 
-        ScaledBitmap<T> bitmap = null;
+        String bitmapName = null;
         int offsetX = 0;
         int offsetY = 0;
         if ( frame != null )
         {
-            bitmap = bitmapCache.get( frame.name );
+            bitmapName = frame.name;
             offsetX = frame.offsetX;
             offsetY = frame.offsetY;
         }
 
         ret.add(
-            new Sprite<T>(
-                bitmap,
+            new Sprite(
+                bitmapName,
                 soundEffectForFrame( soundEffectOverride, frame ),
                 thing.x,
                 thing.y,
@@ -155,35 +166,42 @@ public class SpriteAnimator<T extends Bitmap>
             return null;
         }
 
-        String frameName = thing.state.name().toLowerCase( Locale.ENGLISH );
-        Animation animation = animationCache.get( frameName );
+        Animation animation = animationCache.get( thing.stateName() );
 
         if ( animation == null )
         {
-            System.out.println( "Missing animation for state " + thing.state );
+            System.out.println(
+                "Missing animation for state " + thing.stateName() );
             return null;
         }
 
         return animation.get( frameNum );
     }
 
-    private ScaledBitmap<T> bitmapForBlock( Block block )
-    {
-        return bitmapCache.get( bitmapNameForBlock( block ) );
-    }
-
     private String bitmapNameForBlock( Block block )
     {
-        switch( block.type )
+        switch ( block.material )
         {
-            case solid_flat:      return land_block[block.variant];
-            case solid_up_right:  return land_rising_right[block.variant];
-            case solid_up_left:   return land_rising_left[block.variant];
-            case bridge_up_right: return bridge_rising_right;
-            case bridge_up_left:  return bridge_rising_left;
-            default:
-                throw new RuntimeException(
-                    "Unknown block type " + block.type );
+            case EARTH:
+                switch ( block.shape )
+                {
+                    case FLAT:            return land_block[block.variant];
+                    case UP_RIGHT:        return land_rising_right[block.variant];
+                    case UP_LEFT:         return land_rising_left[block.variant];
+                    case BRIDGE_UP_RIGHT: return bridge_rising_right;
+                    case BRIDGE_UP_LEFT:  return bridge_rising_left;
+                }
+                break;
+            case METAL:
+                switch ( block.shape )
+                {
+                    case FLAT:            return metal_block[block.variant];
+                    default:
+                        break;
+                }
+                break;
         }
+        throw new RuntimeException(
+            "Unknown Block type: " + block.material + " " + block.shape);
     }
 }

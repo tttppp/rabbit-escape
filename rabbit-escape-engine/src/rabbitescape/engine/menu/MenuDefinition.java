@@ -1,18 +1,32 @@
 package rabbitescape.engine.menu;
 
 import static rabbitescape.engine.menu.MenuConstruction.*;
-import static rabbitescape.engine.menu.MenuTargets.*;
+import static rabbitescape.engine.util.Util.*;
+
+import rabbitescape.engine.menu.LevelsList.LevelSetInfo;
 import rabbitescape.engine.menu.MenuItem.Type;
+import rabbitescape.engine.util.Util.IdxObj;
 
 public class MenuDefinition
 {
-    public static Menu mainMenu( LevelsCompleted levelsCompleted )
-    {
-        return mainMenu( levelsCompleted, true );
-    }
+    
+    public static final LevelsList allLevels = new LevelsList(
+        new LevelSetInfo( "Easy", "01_easy", null ),
+        new LevelSetInfo( "Medium", "02_medium", null ),
+        new LevelSetInfo( "Hard", "03_hard", null ),
+        new LevelSetInfo( "Outdoors", "04_outdoors", null ),
+        new LevelSetInfo( "Arcade", "05_arcade", null ),
+        new LevelSetInfo( "Small World", "06_small_world", null ),
+        new LevelSetInfo( "Deja Vu", "07_dejavu", null ),
+        new LevelSetInfo( "Development", "development", null, true ),
+        new LevelSetInfo( "Staging", "staging", null, true )
+    );
 
     public static Menu mainMenu(
-        LevelsCompleted levelsCompleted, boolean includeLoadLevel )
+        LevelsCompleted levelsCompleted,
+        LevelsList loadedLevels,
+        boolean includeLoadLevel
+    )
     {
         return menu(
             "Welcome to Rabbit Escape!",
@@ -20,14 +34,12 @@ public class MenuDefinition
                 "Start Game",
                 menu(
                     "Choose a set of levels:",
-                    item( "Easy",     levels( "easy",     levelsCompleted ), true ),
-                    item( "Medium",   levels( "medium",   levelsCompleted ), true ),
-                    item( "Hard",     levels( "hard",     levelsCompleted ), true ),
-                    item( "Outdoors", levels( "outdoors", levelsCompleted ), true )
+                    items( levelsCompleted, loadedLevels )
                 ),
-                true
+                true,
+                false
             ),
-            item( "About",      Type.ABOUT, true ),
+            item( "About", Type.ABOUT, true ),
             maybeItem(
                 includeLoadLevel,
                 "Custom Levels",
@@ -38,7 +50,26 @@ public class MenuDefinition
                 ),
                 true
             ),
-            item( "Quit",       Type.QUIT,  true )
+            item( "Quit", Type.QUIT,  true )
         );
+    }
+
+    private static MenuItem[] items(
+        LevelsCompleted levelsCompleted,
+        LevelsList loadedLevels
+    )
+    {
+        MenuItem[] ret = new MenuItem[ loadedLevels.size() ];
+        for ( IdxObj<LevelSetInfo> setI : enumerate( loadedLevels ) )
+        {
+            LevelSetInfo set = setI.object;
+            ret[setI.index] = item(
+                set.name,
+                new LevelsMenu( set.dirName, loadedLevels, levelsCompleted ),
+                true,
+                set.hidden
+            );
+        }
+        return ret;
     }
 }

@@ -1,12 +1,9 @@
 package rabbitescape.engine;
 
-import static rabbitescape.engine.Block.Type.solid_flat;
-import static rabbitescape.engine.Block.Type.solid_up_left;
-import static rabbitescape.engine.Block.Type.solid_up_right;
+import static rabbitescape.engine.Block.Shape.*;
 import static rabbitescape.engine.Direction.RIGHT;
 import static rabbitescape.engine.Direction.opposite;
-
-import rabbitescape.engine.ChangeDescription.State;
+import rabbitescape.engine.util.Position;
 
 public class BehaviourTools
 {
@@ -34,22 +31,61 @@ public class BehaviourTools
 
     public boolean rabbitIsFalling()
     {
-        return
-               State.RABBIT_FALLING == rabbit.state
-            || State.RABBIT_FALLING_1 == rabbit.state
-            || State.RABBIT_FALLING_1_TO_DEATH == rabbit.state
-            || State.RABBIT_DYING_OF_FALLING_2 == rabbit.state
-            || State.RABBIT_DYING_OF_FALLING == rabbit.state
-            || State.RABBIT_FALLING_ONTO_LOWER_RIGHT == rabbit.state
-            || State.RABBIT_FALLING_ONTO_RISE_RIGHT == rabbit.state
-            || State.RABBIT_FALLING_ONTO_LOWER_LEFT == rabbit.state
-            || State.RABBIT_FALLING_ONTO_RISE_LEFT == rabbit.state
-            || State.RABBIT_FALLING_1_ONTO_LOWER_RIGHT == rabbit.state
-            || State.RABBIT_FALLING_1_ONTO_RISE_RIGHT == rabbit.state
-            || State.RABBIT_FALLING_1_ONTO_LOWER_LEFT == rabbit.state
-            || State.RABBIT_FALLING_1_ONTO_RISE_LEFT == rabbit.state ;
+        switch (rabbit.state)
+        {
+        case RABBIT_FALLING:
+        case RABBIT_FALLING_1:
+        case RABBIT_FALLING_1_TO_DEATH:
+        case RABBIT_DYING_OF_FALLING_2:
+        case RABBIT_DYING_OF_FALLING:
+        case RABBIT_FALLING_ONTO_LOWER_RIGHT:
+        case RABBIT_FALLING_ONTO_RISE_RIGHT:
+        case RABBIT_FALLING_ONTO_LOWER_LEFT:
+        case RABBIT_FALLING_ONTO_RISE_LEFT:
+        case RABBIT_FALLING_1_ONTO_LOWER_RIGHT:
+        case RABBIT_FALLING_1_ONTO_RISE_RIGHT:
+        case RABBIT_FALLING_1_ONTO_LOWER_LEFT:
+        case RABBIT_FALLING_1_ONTO_RISE_LEFT:
+        case RABBIT_DYING_OF_FALLING_SLOPE_RISE_RIGHT:
+        case RABBIT_DYING_OF_FALLING_SLOPE_RISE_RIGHT_2:
+        case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_RIGHT:
+        case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_RIGHT_2:
+        case RABBIT_DYING_OF_FALLING_SLOPE_RISE_LEFT:
+        case RABBIT_DYING_OF_FALLING_SLOPE_RISE_LEFT_2:
+        case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_LEFT:
+        case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_LEFT_2:
+            return true;
+        default:
+            return false;
+        }
     }
-    
+
+    public boolean rabbitIsClimbing()
+    {
+        switch( rabbit.state)
+        {
+        case RABBIT_ENTERING_EXIT_CLIMBING_RIGHT:
+        case RABBIT_ENTERING_EXIT_CLIMBING_LEFT:
+        case RABBIT_CLIMBING_LEFT_START:
+        case RABBIT_CLIMBING_LEFT_CONTINUE_1:
+        case RABBIT_CLIMBING_LEFT_CONTINUE_2:
+        case RABBIT_CLIMBING_LEFT_END:
+        case RABBIT_CLIMBING_LEFT_BANG_HEAD:
+        case RABBIT_CLIMBING_RIGHT_START:
+        case RABBIT_CLIMBING_RIGHT_CONTINUE_1:
+        case RABBIT_CLIMBING_RIGHT_CONTINUE_2:
+        case RABBIT_CLIMBING_RIGHT_END:
+        case RABBIT_CLIMBING_RIGHT_BANG_HEAD:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    /**
+     * Checks for the presence of a token. Removes token from the the world and returns
+     * true if a token is being picked up.
+     */
     public boolean pickUpToken( Token.Type type, boolean evenIfNotOnGround )
     {
         if ( rabbitIsFalling() && rabbit.isFallingToDeath() )
@@ -114,7 +150,7 @@ public class BehaviourTools
         return (
                block != null
             && (
-                   block.type == solid_flat
+                   block.shape == FLAT
                 || (
                     block.riseDir() == opposite( rabbit.dir )
                     && isSolid( block )
@@ -123,12 +159,63 @@ public class BehaviourTools
         );
     }
 
-    private boolean isSolid( Block block )
+
+    public static boolean shapeEquals( Block b, Block.Shape s )
+    {
+        if ( null == b )
+        {
+            return false;
+        }
+        return s == b.shape;
+    }
+
+    public static boolean isRightRiseSlope( Block b )
+    {
+        if( b == null )
+        {
+            return false;
+        }
+        return b.shape == UP_RIGHT
+            || b.shape == BRIDGE_UP_RIGHT;
+    }
+
+    public static boolean isLeftRiseSlope( Block b )
+    {
+        if( b == null )
+        {
+            return false;
+        }
+        return b.shape == UP_LEFT
+            || b.shape == BRIDGE_UP_LEFT;
+    }
+
+    public static boolean isSlope( Block b )
+    {
+        return isRightRiseSlope( b ) || isLeftRiseSlope( b );
+    }
+
+    public static boolean isBridge( Block b )
+    {
+        if( b == null )
+        {
+            return false;
+        }
+        switch ( b.shape )
+        {
+        case BRIDGE_UP_LEFT:
+        case BRIDGE_UP_RIGHT:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    public static boolean isSolid( Block block )
     {
         return (
-               block.type == solid_flat
-            || block.type == solid_up_left
-            || block.type == solid_up_right
+               block.shape == FLAT
+            || block.shape == UP_LEFT
+            || block.shape == UP_RIGHT
         );
     }
 
@@ -138,9 +225,9 @@ public class BehaviourTools
             (
                 block != null
                 && (
-                       block.type == solid_flat
-                    || block.type == solid_up_left
-                    || block.type == solid_up_right
+                       block.shape == FLAT
+                    || block.shape == UP_LEFT
+                    || block.shape == UP_RIGHT
                 )
             );
     }
@@ -151,10 +238,10 @@ public class BehaviourTools
         return
             null != block &&
             (
-                   solid_up_left == block.type
-                || solid_up_right == block.type
-                || Block.Type.bridge_up_left == block.type
-                || Block.Type.bridge_up_right == block.type
+                   block.shape == UP_LEFT
+                || block.shape == UP_RIGHT
+                || block.shape == BRIDGE_UP_LEFT
+                || block.shape == BRIDGE_UP_RIGHT
             );
     }
 
@@ -165,7 +252,7 @@ public class BehaviourTools
 
     public static boolean s_isFlat( Block block )
     {
-        return ( block != null && block.type == solid_flat );
+        return ( block != null && block.shape == FLAT );
     }
 
     private boolean goingUpSlope()
@@ -183,6 +270,32 @@ public class BehaviourTools
     public boolean isOnUpSlope()
     {
         return rabbit.onSlope && hereIsUpSlope();
+    }
+
+    /**
+     * Check if rabbit is changing from an up slope directly to a down slope.
+     */
+    public boolean isCresting()
+    {
+        // block where slope would be if it continues
+        Block contBlock = world.getBlockAt( nextX(), nextY() );
+        Block belowContBlock = world.getBlockAt( nextX(), nextY() + 1 );
+
+        return isOnUpSlope() &&
+               null == contBlock &&
+               isDownSlope( belowContBlock );
+    }
+
+    /**
+     * Check if rabbit is changing from a down slope directly to an up slope.
+     */
+    public boolean isValleying()
+    {
+        // block where slope would be if it continues
+        Block alongBlock = world.getBlockAt( nextX(), rabbit.y );
+
+        return isOnDownSlope() &&
+               isUpSlope( alongBlock );
     }
 
     public boolean hereIsUpSlope()
@@ -208,6 +321,22 @@ public class BehaviourTools
     public boolean isDownSlope( Block block )
     {
         return ( block != null && block.riseDir() == opposite( rabbit.dir ) );
+    }
+
+    public static boolean isSlopeNotBridge( Block b )
+    {
+        if ( null == b )
+        {
+            return false;
+        }
+        switch( b.shape )
+        {
+        case UP_LEFT:
+        case UP_RIGHT:
+            return true;
+        default:
+            return false;
+        }
     }
 
     public int nextX()
@@ -237,7 +366,7 @@ public class BehaviourTools
      */
     public boolean blockHereJustRemoved()
     {
-        for ( WorldChanges.Point p : world.changes.blocksJustRemoved )
+        for ( Position p : world.changes.blocksJustRemoved )
         {
             if ( rabbit.x == p.x && rabbit.y == p.y )
             {

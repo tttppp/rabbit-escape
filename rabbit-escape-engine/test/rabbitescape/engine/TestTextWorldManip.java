@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import static rabbitescape.engine.ChangeDescription.State.*;
 import static rabbitescape.engine.Tools.*;
 import static rabbitescape.engine.textworld.TextWorldManip.*;
+import static rabbitescape.engine.Rabbit.Type.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +21,7 @@ import rabbitescape.engine.solution.SolutionExceptions;
 import rabbitescape.engine.solution.SolutionParser;
 import rabbitescape.engine.solution.SolutionRunner;
 import rabbitescape.engine.solution.SolutionExceptions.RanPastEnd;
+import rabbitescape.engine.textworld.ArrayByKeyElementMissing;
 import rabbitescape.engine.textworld.DuplicateMetaKey;
 import rabbitescape.engine.textworld.ItemsLineProcessor;
 import rabbitescape.engine.textworld.LineProcessor;
@@ -32,10 +34,11 @@ public class TestTextWorldManip
     {
         String[] lines = {
             "###########",
-            "#  Q    c #",
-            "#\\      i/#",
+            "#  Q  A c #",
+            "#\\  M   i/#",
             "#  O     d#",
             "#r j )(  b#",
+            "# t y     #",
             "###########"
         };
 
@@ -472,16 +475,16 @@ public class TestTextWorldManip
     public void Can_obfuscate_hints()
     {
         String[] lines = {
-            ":hint1.code=_Uf?>3ZH_8>U>{3",
-            ":hint2.code=@XW@W:)e+:+ ",
-            ":hint3.code=X5g..T[6X4["
+            ":hint.1.code=_Uf?>3ZH_8>U>{3",
+            ":hint.2.code=@XW@W:)e+:+ ",
+            ":hint.3.code=X5g..T[6X4["
         };
 
         World world = createWorld( lines );
 
-        assertThat( world.hint1, equalTo( "Select the bash" ) );
-        assertThat( world.hint2, equalTo( "Use the bash" ) );
-        assertThat( world.hint3, equalTo( "Be the bash" ) );
+        assertThat( world.hints[0], equalTo( "Select the bash" ) );
+        assertThat( world.hints[1], equalTo( "Use the bash" ) );
+        assertThat( world.hints[2], equalTo( "Be the bash" ) );
     }
 
     @Test
@@ -530,8 +533,8 @@ public class TestTextWorldManip
         );
 
         // put 2 rabbits and 2 items all in the same place, on top of a block
-        world.rabbits.add( new Rabbit( 2, 2, Direction.RIGHT ) );
-        world.rabbits.add( new Rabbit( 2, 2, Direction.LEFT ) );
+        world.rabbits.add( new Rabbit( 2, 2, Direction.RIGHT, RABBIT ) );
+        world.rabbits.add( new Rabbit( 2, 2, Direction.LEFT, RABBIT ) );
         world.things.add( new Token( 2, 2, Token.Type.bash ) );
         world.things.add( new Token( 2, 2, Token.Type.bridge ) );
 
@@ -559,8 +562,8 @@ public class TestTextWorldManip
         );
 
         // Rabbits in top left
-        world.rabbits.add( new Rabbit( 1, 1, Direction.RIGHT ) );
-        world.rabbits.add( new Rabbit( 1, 1, Direction.LEFT ) );
+        world.rabbits.add( new Rabbit( 1, 1, Direction.RIGHT, RABBIT ) );
+        world.rabbits.add( new Rabbit( 1, 1, Direction.LEFT, RABBIT ) );
 
         // bash and bridge in top right
         world.things.add( new Token( 2, 1, Token.Type.bash ) );
@@ -593,7 +596,7 @@ public class TestTextWorldManip
         World world = createWorld(
             "####",
             "#**#",
-            ":*=rj",
+            ":*=r{index:2}j{index:3}",
             ":*=bi",
             "#**#",
             "####",
@@ -609,7 +612,7 @@ public class TestTextWorldManip
                 "#**#",
                 "#**#",
                 "####",
-                ":*=rj",
+                ":*=r{index:2}j{index:3}",
                 ":*=bi",
                 ":*=\\d",
                 ":*=/d"
@@ -772,7 +775,7 @@ public class TestTextWorldManip
             "#**#",
             "#**#",
             "####",
-            ":*=rj",
+            ":*=r{index:1}j{index:40}",
             ":*=bi",
             ":*=\\d",
             ":*=/d"
@@ -828,15 +831,16 @@ public class TestTextWorldManip
             ":description=",
             ":author_name=Alice Jones",
             ":author_url=http://example.com",
-            ":hint1=foo\nbar",
-            ":hint2=baz",
-            ":hint3=bash",
+            ":hint.1=foo\nbar",
+            ":hint.2=baz",
+            ":hint.3=bash",
             ":num_rabbits=25",
             ":num_to_save=4",
             ":rabbit_delay=2",
             ":num_saved=5",
             ":num_killed=4",
             ":num_waiting=16",
+            ":rabbit_index_count=7",
             ":paused=false",
             ":bash=1",
             ":block=4",
@@ -847,7 +851,7 @@ public class TestTextWorldManip
             "#**#",
             "#**#",
             "####",
-            ":*=rj",
+            ":*=r{index:5}j{index:7}",
             ":*=bi",
             ":*=\\d",
             ":*=/d"
@@ -914,15 +918,16 @@ public class TestTextWorldManip
             ":description=Go around",
             ":author_name=bob",
             ":author_url=",
-            ":hint1=",
-            ":hint2=",
-            ":hint3=",
+            ":hint.1=",
+            ":hint.2=",
+            ":hint.3=",
             ":num_rabbits=25",
             ":num_to_save=4",
             ":rabbit_delay=2",
             ":num_saved=5",
             ":num_killed=4",
             ":num_waiting=16",
+            ":rabbit_index_count=4",
             ":paused=true",
             ":bash=1",
             ":bridge=3",
@@ -932,10 +937,10 @@ public class TestTextWorldManip
             "#         #",
             "# * * * * #",
             "###########",
-            ":*=r{Bashing.stepsOfBashing:1}Q{Entrance.timeToNextRabbit:3}",
-            ":*=j{Bridging.bigSteps:1,Bridging.bridgeType:DOWN_UP,Bridging.smallSteps:1,onSlope:true}",
-            ":*=j{Climbing.hasAbility:true}",
-            ":*=j{Climbing.abilityActive:true,Climbing.hasAbility:true}",
+            ":*=r{Bashing.stepsOfBashing:1,index:1}Q{Entrance.timeToNextRabbit:3}",
+            ":*=j{Bridging.bigSteps:1,Bridging.bridgeType:DOWN_UP,Bridging.smallSteps:1,index:2,onSlope:true}",
+            ":*=j{Climbing.hasAbility:true,index:3}",
+            ":*=j{Climbing.abilityActive:true,Climbing.hasAbility:true,index:4}",
         };
 
         assertThat(
@@ -965,9 +970,14 @@ public class TestTextWorldManip
 
         String[] expectedLines = {
             "*                                                                            ",
-            "      r  r  r rr                                                             ",
+            "      *  *  * **                                                             ",
             "#############################################################################",
-            ":*=Q{Entrance.timeToNextRabbit:2}"
+            ":*=Q{Entrance.timeToNextRabbit:2}",
+            ":*=r{index:5}",
+            ":*=r{index:4}",
+            ":*=r{index:3}",
+            ":*=r{index:2}",
+            ":*=r{index:1}"
         };
         assertThat( resultLines, equalTo( expectedLines ));
 
@@ -985,15 +995,19 @@ public class TestTextWorldManip
             ":description=trippy",
             ":author_name=cyril",
             ":author_url=",
-            ":hint1=",
-            ":hint2=",
-            ":hint3=",
+            ":hint.1=take",
+            ":hint.2=a",
+            ":hint.3=hint",
+            ":solution.1=",
+            ":solution.2=",
+            ":solution.3=",
             ":num_rabbits=20",
             ":num_to_save=18",
             ":rabbit_delay=10,3,2,10",
             ":num_saved=0",
             ":num_killed=0",
             ":num_waiting=20",
+            ":rabbit_index_count=0",
             ":paused=false",
             "#######",
             "#Q   Q#",
@@ -1006,6 +1020,357 @@ public class TestTextWorldManip
             equalTo( lines )
         );
     }
+
+    @Test
+    public void Comments_for_string_arrays_by_key_associate_correctly()
+    {
+        String[] lines = {
+            ":name=Comments",
+            ":description=verbose",
+            ":author_name=bob",
+            ":author_url=",
+            "% something erudite",
+            ":hint.1=take",
+            "% insight",
+            ":hint.2=a",
+            "% wisdom regarding hint.3",
+            ":hint.3=hint",
+            ":hint.4=hint",
+            ":hint.5=hint",
+            ":hint.6=hint",
+            ":hint.7=hint",
+            ":hint.8=hint",
+            "% some acumen",
+            ":hint.9=hint",
+            "% sagacity personified",
+            ":hint.10=hint",
+            ":hint.11=hint",
+            "% deep understanding",
+            ":hint.12=hint",
+            ":solution.1=",
+            "% a lot of rabbits",
+            ":num_rabbits=20",
+            ":num_to_save=18",
+            ":rabbit_delay=10,3,2,10",
+            ":num_saved=0",
+            ":num_killed=0",
+            ":num_waiting=20",
+            ":rabbit_index_count=0",
+            ":paused=false",
+            "#######",
+            "#Q   Q#",
+            "#     #",
+            "#######",
+        };
+
+        assertThat(
+            renderCompleteWorld( createWorld( lines ), true ),
+            equalTo( lines )
+        );
+    }
+
+    @Test
+    public void Comments_for_abilities_round_trip()
+    {
+        String[] lines = {
+            ":name=Comments",
+            ":description=verbose",
+            ":author_name=bob",
+            ":author_url=",
+            ":num_rabbits=20",
+            ":num_to_save=18",
+            ":rabbit_delay=10,3,2,10",
+            ":num_saved=0",
+            ":num_killed=0",
+            ":num_waiting=20",
+            ":rabbit_index_count=0",
+            ":paused=false",
+            "% a",
+            ":bash=1",
+            "% b",
+            "% c",
+            ":block=4",
+            "% d",
+            ":bridge=3",
+            "% e",
+            ":climb=5",
+            ":dig=2",
+            "%f",
+            ":explode=6",
+            "#######",
+            "#Q   Q#",
+            "#     #",
+            "#######",
+        };
+
+        assertThat(
+            renderCompleteWorld( createWorld( lines ), true ),
+            equalTo( lines )
+        );
+    }
+
+    @Test
+    public void Round_trip_comments()
+    {
+        String[] lines = {
+            ":name=Comments",
+            "% desc 1.",
+            "% desc 2. can have 2 comment line about something ",
+            ":description=verbose",
+            "% I love bob's work",
+            ":author_name=bob",
+            "% his website is great",
+            ":author_url=",
+            "% something erudite about hint.1",
+            ":hint.1=take",
+            ":hint.2=a",
+            "% wisdom regarding hint.3",
+            ":hint.3=hint",
+            ":solution.1=",
+            "% s2 looks like cheeating",
+            ":solution.2=",
+            ":solution.3=",
+            "% a lot of rabbits",
+            ":num_rabbits=20",
+            "% save how many?",
+            ":num_to_save=18",
+            "% why are we waiting?",
+            ":rabbit_delay=10,3,2,10",
+            "% some already out: no",
+            ":num_saved=0",
+            "% dead already",
+            ":num_killed=0",
+            "% the bunnies are queuing in the pre-life",
+            ":num_waiting=20",
+            ":rabbit_index_count=20",
+            "% paused ",
+            ":paused=false",
+            "% pretty ascii art",
+            "#######",
+            "#Q   Q#",
+            "# *** #",
+            "#######",
+            "% starpoint comment",
+            ":*=r{index:1}r{index:2}",
+            ":*=j{index:3}j{index:4}",
+            ":*=r{index:5}j{index:20}",
+            "% comments are also OK after",
+            "% all the substantive metadata"
+        };
+
+        assertThat(
+            renderCompleteWorld( createWorld( lines ), true ),
+            equalTo( lines )
+        );
+    }
+
+    @Test
+    public void Round_trip_comments_move_with_meta()
+    {
+        String[] lines = {
+            "% something erudite about hint.1",
+            ":hint.1=take",
+            ":hint.2=a",
+            "% wisdom regarding hint.3",
+            ":hint.3=hint",
+            ":solution.1=",
+            "% a lot of rabbits",
+            ":num_rabbits=20",
+            "% save how many?",
+            ":num_to_save=18",
+            "% why are we waiting?",
+            ":rabbit_delay=10,3,2,10",
+            "% some already out: no",
+            ":num_saved=0",
+            "% dead already",
+            ":num_killed=0",
+            "% his website is great",
+            ":author_url=",
+            "% the bunnies are queuing in the pre-life",
+            ":num_waiting=20",
+            ":rabbit_index_count=0",
+            "% paused ",
+            ":paused=false",
+            "% pretty ascii art",
+            "#######",
+            ":name=Comments",
+            "#Q   Q#",
+            "% desc 1.",
+            "% desc 2. can have 2 comment line about something ",
+            ":description=verbose",
+            "#     #",
+            "% I love bob's work",
+            ":author_name=bob",
+            "#######",
+            "% s2 looks like cheeating",
+            ":solution.2=",
+            ":solution.3="
+        };
+
+        String[] expectedLines = {
+            ":name=Comments",
+            "% desc 1.",
+            "% desc 2. can have 2 comment line about something ",
+            ":description=verbose",
+            "% I love bob's work",
+            ":author_name=bob",
+            "% his website is great",
+            ":author_url=",
+            "% something erudite about hint.1",
+            ":hint.1=take",
+            ":hint.2=a",
+            "% wisdom regarding hint.3",
+            ":hint.3=hint",
+            ":solution.1=",
+            "% s2 looks like cheeating",
+            ":solution.2=",
+            ":solution.3=",
+            "% a lot of rabbits",
+            ":num_rabbits=20",
+            "% save how many?",
+            ":num_to_save=18",
+            "% why are we waiting?",
+            ":rabbit_delay=10,3,2,10",
+            "% some already out: no",
+            ":num_saved=0",
+            "% dead already",
+            ":num_killed=0",
+            "% the bunnies are queuing in the pre-life",
+            ":num_waiting=20",
+            ":rabbit_index_count=0",
+            "% paused ",
+            ":paused=false",
+            "% pretty ascii art",
+            "#######",
+            "#Q   Q#",
+            "#     #",
+            "#######"
+        };
+
+        assertThat(
+            renderCompleteWorld( createWorld( lines ), true ),
+            equalTo( expectedLines )
+        );
+    }
+
+    @Test
+    public void Starpoint_comments_move_to_a_block()
+    {
+        String[] lines = {
+            ":name=Comments",
+            ":description=verbose",
+            ":author_name=bob",
+            ":author_url=",
+            ":hint.1=take",
+            ":hint.2=a",
+            ":hint.3=hint",
+            ":solution.1=",
+            ":solution.2=",
+            ":solution.3=",
+            ":num_rabbits=20",
+            ":num_to_save=18",
+            ":rabbit_delay=10,3,2,10",
+            "#######",
+            "#Q   Q#",
+            "# *** #",
+            "#######",
+            "% starpoint comment 1",
+            ":*=rr",
+            "% starpoint comment 2",
+            ":*=jj",
+            "% starpoint comment 3",
+            ":*=rj"
+        };
+
+        String[] expectedLines = {
+            ":name=Comments",
+            ":description=verbose",
+            ":author_name=bob",
+            ":author_url=",
+            ":hint.1=take",
+            ":hint.2=a",
+            ":hint.3=hint",
+            ":solution.1=",
+            ":solution.2=",
+            ":solution.3=",
+            ":num_rabbits=20",
+            ":num_to_save=18",
+            ":rabbit_delay=10,3,2,10",
+            "#######",
+            "#Q   Q#",
+            "# *** #",
+            "#######",
+            "% starpoint comment 1",
+            "% starpoint comment 2",
+            "% starpoint comment 3",
+            ":*=r{index:1}r{index:2}",
+            ":*=j{index:3}j{index:4}",
+            ":*=r{index:5}j{index:6}"
+        };
+
+        assertThat(
+            renderCompleteWorld( createWorld( lines ), true, false ),
+            equalTo( expectedLines )
+        );
+    }
+
+    @Test
+    public void World_comments_move_to_a_block()
+    {
+        String[] lines = {
+            ":name=Comments",
+            ":description=verbose",
+            ":author_name=bob",
+            ":author_url=",
+            ":hint.1=take",
+            ":hint.2=a",
+            ":hint.3=hint",
+            ":solution.1=",
+            ":solution.2=",
+            ":solution.3=",
+            ":num_rabbits=20",
+            ":num_to_save=18",
+            ":rabbit_delay=10,3,2,10",
+            "% interspersed",
+            "#######",
+            "% comments",
+            "#Q   Q#",
+            "% move to a",
+            "% block",
+            "#     #",
+            "#######"
+        };
+
+        String[] expectedLines = {
+            ":name=Comments",
+            ":description=verbose",
+            ":author_name=bob",
+            ":author_url=",
+            ":hint.1=take",
+            ":hint.2=a",
+            ":hint.3=hint",
+            ":solution.1=",
+            ":solution.2=",
+            ":solution.3=",
+            ":num_rabbits=20",
+            ":num_to_save=18",
+            ":rabbit_delay=10,3,2,10",
+            "% interspersed",
+            "% comments",
+            "% move to a",
+            "% block",
+            "#######",
+            "#Q   Q#",
+            "#     #",
+            "#######"
+        };
+
+        assertThat(
+            renderCompleteWorld( createWorld( lines ), true, false ),
+            equalTo( expectedLines )
+        );
+    }
+
 
     /**
      * @brief Key meta should be unique. Test that Duplicate name
@@ -1103,22 +1468,23 @@ public class TestTextWorldManip
     public void Round_trip_for_solutions()
     {
         String[] lines = {
-            ":name=var delay round trip",
+            ":name=solution round trip",
             ":description=trippy",
             ":author_name=cyril",
             ":author_url=",
+            ":hint.1=take",
+            ":hint.2=a",
+            ":hint.3=hint",
             ":solution.1=10;6",
             ":solution.2=bash;(3,2)",
             ":solution.3=6;5",
-            ":hint1=",
-            ":hint2=",
-            ":hint3=",
             ":num_rabbits=20",
             ":num_to_save=18",
             ":rabbit_delay=10,3,2,10",
             ":num_saved=0",
             ":num_killed=0",
             ":num_waiting=20",
+            ":rabbit_index_count=40",
             ":paused=false",
             "#######",
             "#Q   Q#",
@@ -1307,7 +1673,24 @@ public class TestTextWorldManip
         assertThat( world.solutions[10], equalTo( "10" ) );
     }
 
-    @Test
+    @Test ( expected = ArrayByKeyElementMissing.class )
+    public void Disorderly_solutions_throw_exceptions()
+    {
+        String[] lines = {
+            ":num_rabbits=1",
+            ":bash=2",
+            ":solution.1=10",
+            ":solution.3=11",
+            ":solution.2=10;bash",
+            " Q   ",
+            "#   #",
+            "#####"
+        };
+
+        createWorld( lines );
+    }
+
+    @Test ( expected = ArrayByKeyElementMissing.class )
     public void Many_solutions_with_gaps()
     {
         String[] lines = {
@@ -1376,23 +1759,23 @@ public class TestTextWorldManip
     }
 
     @Test
-    public void Comments_in_rel_are_ignored_and_comment_char_only_active_at_start_of_line()
+    public void Comments_only_active_at_start_of_line()
     {
         String[] lines = {
             ":name=Commentary % look at me",
             ":description=trippy",
-            "% ignore me",
             ":author_name=cyril",
             ":author_url=",
-            ":hint1=",
-            ":hint2=",
-            ":hint3=",
+            ":hint.1=",
+            ":hint.2=",
+            ":hint.3=",
             ":num_rabbits=20",
             ":num_to_save=18",
             ":rabbit_delay=1",
             ":num_saved=0",
             ":num_killed=0",
             ":num_waiting=20",
+            ":rabbit_index_count=0",
             ":paused=false",
             "#######",
             "#Q   Q#",
@@ -1400,30 +1783,90 @@ public class TestTextWorldManip
             "#######"
         };
 
-        String[] linesNoComment = {
-            ":name=Commentary % look at me",
-            ":description=trippy",
-            ":author_name=cyril",
-            ":author_url=",
-            ":hint1=",
-            ":hint2=",
-            ":hint3=",
-            ":num_rabbits=20",
-            ":num_to_save=18",
-            ":rabbit_delay=1",
-            ":num_saved=0",
-            ":num_killed=0",
-            ":num_waiting=20",
-            ":paused=false",
-            "#######",
-            "#Q   Q#",
-            "#     #",
-            "#######"
-        };
-        
         assertThat(
             renderCompleteWorld( createWorld( lines ), true ),
-            equalTo( linesNoComment )
+            equalTo( lines )
+        );
+    }
+
+    @Test
+    public void String_hash_is_reproducible()
+    {
+        String[] sa = new String[]{
+            "Dig for victory", "Tomb raider", "Slot machine", "Space invaders", "UFO" };
+        int[] h = new int[]{
+             1451,              1065,          1175,           1384,             234
+        };
+        for ( int i = 0; i < sa.length ; i++ )
+        {
+            assertThat(
+                LineProcessor.stringHash( sa[i] ),
+                equalTo( h[i] ) );
+        }
+
+
+    }
+
+    @Test
+    public void Gentest_contains_extra_quotes_and_line_breaks()
+    {
+        String[] lines = {
+            "#####",
+            "# r #",
+            "#####"
+        };
+
+        assertThat(
+            renderWorldForTest( createWorld( lines ) ),
+            equalTo(
+                  "            \"#####\" + \"\\n\" +\n"
+                + "            \"# r>#\" + \"\\n\" +\n"
+                + "            \"#####\",\n"
+            )
+        );
+    }
+
+    @Test
+    public void Gentest_escapes_backslashes()
+    {
+        String[] lines = {
+            "#####",
+            "#\\  #",
+            "#####"
+        };
+
+        assertThat(
+            renderWorldForTest( createWorld( lines ) ),
+            equalTo(
+                  "            \"#####\" + \"\\n\" +\n"
+                + "            \"#\\\\  #\" + \"\\n\" +\n"
+                + "            \"#####\",\n"
+            )
+        );
+    }
+
+    @Test
+    public void Gentest_contains_extra_quotes_and_line_breaks_lots_of_types()
+    {
+        String[] lines = {
+            "###########",
+            "#  Q A  c #",
+            "#\\      i/#",
+            "#  O     d#",
+            "#r j )(  b#",
+            "###########"
+        };
+
+        assertThat(
+            renderWorldForTest( createWorld( lines ) ),
+            equalTo(
+                  "            \"###########\" + \"\\n\" +\n"
+                + "            \"#  Q A  c #\" + \"\\n\" +\n"
+                + "            \"#\\\\   g  f/#\" + \"\\n\" +\n"
+                + "            \"#  O    fd#\" + \"\\n\" +\n"
+                + "            \"#r<j )(  f#\" + \"\\n\" +\n"
+                + "            \"###########\",\n"
+            )
         );
     }
 

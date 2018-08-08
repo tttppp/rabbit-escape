@@ -28,6 +28,27 @@ public class RabbitRenderer
 
     private static char charForRabbit( Rabbit rabbit )
     {
-        return rabbit.dir == RIGHT ? 'r' : 'j';
+        if ( rabbit.dir == RIGHT )
+        {
+            if ( rabbit.type == Rabbit.Type.RABBIT )
+            {
+                return 'r';
+            }
+            else
+            {
+                return 't';
+            }
+        }
+        else
+        {
+            if ( rabbit.type == Rabbit.Type.RABBIT )
+            {
+                return 'j';
+            }
+            else
+            {
+                return 'y';
+            }
+        }
     }
 }

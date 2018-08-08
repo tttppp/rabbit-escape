@@ -32,13 +32,13 @@ public class TopBar implements Physics.StatsChangedListener
     private final int numToSave;
 
     public TopBar(
-        Color backgroundColor, int numToSave, Container contentPane )
+        Color backgroundColor, int numToSave, Container contentPane, String worldName )
     {
         this.backgroundColor = backgroundColor;
         this.panel = createPanel( contentPane );
 
+        addLabel( worldName, 300 );
         this.ability = addLabel( "" );
-
         this.out     = addLabel( outText );
         this.saved   = addLabel( savedText );
         setCountText( this.saved, savedText, 0, numToSave );
@@ -58,12 +58,17 @@ public class TopBar implements Physics.StatsChangedListener
         return ret;
     }
 
-    private JLabel addLabel( String text )
+    private JLabel addLabel( String text, int width )
     {
         JLabel ret = new JLabel( t( text, newMap( "num", "" ) ) );
-        ret.setPreferredSize( new Dimension( 100, 20 ) );
+        ret.setPreferredSize( new Dimension( width, 20 ) );
         panel.add( ret );
         return ret;
+    }
+
+    private JLabel addLabel( String text )
+    {
+        return addLabel( text, 200);
     }
 
     @Override

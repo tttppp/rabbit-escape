@@ -51,8 +51,16 @@ public class Digging extends Behaviour
             }
             else if ( t.blockBelow() != null )
             {
+                if ( t.blockBelow().material == Block.Material.METAL )
+                {
+                    stepsOfDigging = 0;
+                    return RABBIT_DIGGING_USELESSLY;
+                }
+                else
+                {
                 stepsOfDigging = 2;
                 return RABBIT_DIGGING;
+                }
             }
         }
 
@@ -78,6 +86,7 @@ public class Digging extends Behaviour
                 return true;
             }
             case RABBIT_DIGGING_2:
+            case RABBIT_DIGGING_USELESSLY:
             {
                 return true;
             }

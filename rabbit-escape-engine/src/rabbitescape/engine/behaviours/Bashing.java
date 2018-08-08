@@ -37,19 +37,52 @@ public class Bashing extends Behaviour
                 && t.blockAboveNext() != null
             )
             {
-                stepsOfBashing = 2;
+                if (t.blockAboveNext().material == Block.Material.METAL)
+                {
+                    stepsOfBashing = 0;
+                    return t.rl(
+                        RABBIT_BASHING_USELESSLY_RIGHT_UP,
+                        RABBIT_BASHING_USELESSLY_LEFT_UP
+                        );
+                }
+                else
+                {
+                    stepsOfBashing = 2;
+                    return t.rl(
+                        RABBIT_BASHING_UP_RIGHT,
+                        RABBIT_BASHING_UP_LEFT
+                    );
+                }
+            }
+            else if (
+                t.isOnUpSlope()
+             && t.blockAboveNext() == null
+             && triggered
+            )
+            {
                 return t.rl(
-                    RABBIT_BASHING_UP_RIGHT,
-                    RABBIT_BASHING_UP_LEFT
+                    RABBIT_BASHING_USELESSLY_RIGHT_UP,
+                    RABBIT_BASHING_USELESSLY_LEFT_UP
                 );
             }
             else if ( t.blockNext() != null )
             {
-                stepsOfBashing = 2;
-                return t.rl(
-                    RABBIT_BASHING_RIGHT,
-                    RABBIT_BASHING_LEFT
-                );
+                if ( t.blockNext().material == Block.Material.METAL )
+                {
+                    stepsOfBashing = 0;
+                    return t.rl(
+                        RABBIT_BASHING_USELESSLY_RIGHT,
+                        RABBIT_BASHING_USELESSLY_LEFT
+                    );
+                }
+                else
+                {
+                    stepsOfBashing = 2;
+                    return t.rl(
+                        RABBIT_BASHING_RIGHT,
+                        RABBIT_BASHING_LEFT
+                    );
+                }
             }
             else if ( triggered )
             {
@@ -84,6 +117,12 @@ public class Bashing extends Behaviour
             case RABBIT_BASHING_USELESSLY_RIGHT:
             case RABBIT_BASHING_USELESSLY_LEFT:
             {
+                return true;
+            }
+            case RABBIT_BASHING_USELESSLY_RIGHT_UP:
+            case RABBIT_BASHING_USELESSLY_LEFT_UP:
+            {
+                rabbit.y -= 1;
                 return true;
             }
             default:

@@ -3,7 +3,9 @@ package rabbitescape.ui.swing;
 import static rabbitescape.engine.util.Util.*;
 
 import rabbitescape.engine.config.Config;
+import rabbitescape.engine.config.ConfigFile;
 import rabbitescape.engine.config.ConfigTools;
+import rabbitescape.engine.config.ConfigSchema;
 import rabbitescape.engine.util.RealFileSystem;
 import rabbitescape.engine.util.Util;
 import rabbitescape.render.*;
@@ -14,7 +16,7 @@ import javax.swing.*;
 
 import java.awt.*;
 import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferStrategy;
 import java.util.*;
@@ -25,51 +27,10 @@ import static rabbitescape.render.AnimationLoader.*;
 
 public class AnimationTester extends JFrame
 {
-    private static class SwingBitmapAndOffset
-    {
-        public final ScaledBitmap<SwingBitmap> bitmap;
-        public final int offsetX;
-        public final int offsetY;
-        public final String soundEffect;
-
-        public SwingBitmapAndOffset(
-            ScaledBitmap<SwingBitmap> bitmap,
-            int offsetX,
-            int offsetY,
-            String soundEffect
-        )
-        {
-            this.bitmap = bitmap;
-            this.offsetX = offsetX;
-            this.offsetY = offsetY;
-            this.soundEffect = soundEffect;
-        }
-    }
-
-    private static class SwingAnimation
-    {
-        private final List<SwingBitmapAndOffset> bitmaps;
-
-        public SwingAnimation(
-            BitmapCache<SwingBitmap> bitmapCache, Animation animation )
-        {
-            this.bitmaps = new ArrayList<>();
-
-            for ( Frame frame : animation )
-            {
-                ScaledBitmap<SwingBitmap> bmp = bitmapCache.get( frame.name );
-
-                this.bitmaps.add(
-                    new SwingBitmapAndOffset(
-                        bmp, frame.offsetX, frame.offsetY, frame.soundEffect )
-                );
-            }
-        }
-
-        public SwingBitmapAndOffset get( int frameNum )
-        {
-            return bitmaps.get( frameNum );
-        }
+    public enum Mode {
+        RUN,
+        STEP,
+        FRAME_DUMP
     }
 
     private static final long serialVersionUID = 1L;
@@ -91,7 +52,8 @@ public class AnimationTester extends JFrame
 
     private static final String CFG_AT_BLOCKS = "animationtester.blocks";
 
-    private static final String[][] defaultAnimationNames = new String[][] {
+    private static final String[][] defaultAnimationNames = new String[][]
+    {
         new String[] { NONE, NONE, NONE },
         new String[] { NONE, NONE, NONE },
         new String[] { NONE, NONE, NONE },
@@ -105,14 +67,14 @@ public class AnimationTester extends JFrame
         new String[] { NONE, NONE, NONE }
     };
 
-    private static final String[] defaultBlockNames = new String[] {
+    private static final String[] defaultBlockNames = new String[]
+    {
         NONE, NONE, NONE,
-        "land-rising-left", NONE, "bridge-rising-right",
-        "land-block", "land-block", "land-block",
+        "land_rising_left_1", NONE, "bridge_rising_right",
+        "land_block_1", "land_block_2", "land_block_3",
     };
 
-    private class Listener implements
-        java.awt.event.MouseListener, ComponentListener
+    private class Listener extends EmptyListener
     {
         @Override
         public void mouseClicked( MouseEvent mouseEvent )
@@ -152,6 +114,8 @@ public class AnimationTester extends JFrame
                 null
             );
 
+            canvas.requestFocus();
+
             if ( retVal == JOptionPane.CANCEL_OPTION )
             {
                 return;
@@ -163,7 +127,8 @@ public class AnimationTester extends JFrame
             blockNames[i] = noneForNull( blocksList.getSelectedValue() );
 
             saveSelectionsToConfig();
-            loadBitmaps();
+
+            canvas.requestFocus();
         }
 
         private void saveSelectionsToConfig()
@@ -202,31 +167,6 @@ public class AnimationTester extends JFrame
         }
 
         @Override
-        public void mousePressed( MouseEvent mouseEvent )
-        {
-        }
-
-        @Override
-        public void mouseReleased( MouseEvent mouseEvent )
-        {
-        }
-
-        @Override
-        public void mouseEntered( MouseEvent mouseEvent )
-        {
-        }
-
-        @Override
-        public void mouseExited( MouseEvent mouseEvent )
-        {
-        }
-
-        @Override
-        public void componentHidden( ComponentEvent arg0 )
-        {
-        }
-
-        @Override
         public void componentMoved( ComponentEvent arg0 )
         {
             ConfigTools.setInt( atConfig, CFG_AT_WINDOW_LEFT, getX() );
@@ -235,28 +175,104 @@ public class AnimationTester extends JFrame
         }
 
         @Override
-        public void componentResized( ComponentEvent arg0 )
+        public void keyPressed( KeyEvent e )
         {
+            switch( e.getKeyCode() )
+            {
+            case KeyEvent.VK_RIGHT: // Speed up
+                if( msFrameLength > 50 )
+                {
+                    msFrameLength -= 50;
+                }
+                return;
+            case KeyEvent.VK_LEFT: // Slow
+                msFrameLength += 50;
+                return;
+            case KeyEvent.VK_A:
+                backwardStep = true;
+                return;
+            case KeyEvent.VK_D:
+                forwardStep = true;
+                return;
+            case KeyEvent.VK_H:
+                System.out.println( "" );
+                System.out.println( "Right arrow  Speed up" );
+                System.out.println( "Left arrow   Slow down" );
+                System.out.println( "A            In step mode, back one frame" );
+                System.out.println( "D            In step mode, forward one frame" );
+                System.out.println( "[CTRL]+X     Clear all animations" );
+                System.out.println( "H            Print this help" );
+                System.out.println( "L            Toggle printing log of frames" );
+                System.out.println( "S            Toggle step mode" );
+                System.out.println( "Q            Quit" );
+                System.out.println( "F5           Dump 30 frames to png" );
+                System.out.println( "F6           After creating pngs, animate them" );
+                System.out.println( "             Requires ImageMagick" );
+                return;
+            case KeyEvent.VK_L:
+                frameLogging = !frameLogging;
+                return;
+            case KeyEvent.VK_S:
+                switch ( runMode )
+                {
+                case RUN:
+                    runMode = Mode.STEP;
+                    return;
+                case STEP:
+                    runMode = Mode.RUN;
+                    return;
+                default:
+                    return;
+                }
+            case KeyEvent.VK_X:
+                if ( e.isControlDown() )
+                {
+                    for ( int i = 0 ; i < 9 ; i++ )
+                    {
+                        for ( int j = 0 ; j < 3 ; j++ )
+                        {
+                            animationNames[i][j] = NONE;
+                        }
+                    }
+
+                    saveSelectionsToConfig();
+                }
+                return;
+            case KeyEvent.VK_F5:
+                runMode = Mode.FRAME_DUMP;
+                return;
+            case KeyEvent.VK_F6:
+                frameDumper.framesToGif();
+                return;
+            case KeyEvent.VK_Q:
+                System.exit( 0 );
+                return; // Should not be necessary. Gets rid of intermittent compiler warning
+            default:
+                // Ignore fat fingers
+            }
+
         }
 
-        @Override
-        public void componentShown( ComponentEvent arg0 )
-        {
-        }
     }
 
+    private Mode runMode = Mode.RUN;
+    private FrameCounter firstFrameDumped = null;
+    private FrameDumper frameDumper = null ;
+    private boolean forwardStep = false;
+    private boolean backwardStep = false;
+    private boolean frameLogging = false;
+    private int msFrameLength = 100 ;
     private final int tileSize;
     private final int numTilesX;
     boolean running;
 
     private final java.awt.Canvas canvas;
     private final Config atConfig;
-    private SwingBitmapScaler scaler;
-    private SwingPaint paint;
-    private SwingAnimation[][] frames;
-    private List<ScaledBitmap<SwingBitmap>> blockBitmaps;
+    private final SwingPaint paint;
+    private final BitmapCache<SwingBitmap> bitmapCache;
     private final AnimationCache animationCache;
-    private final String[] allBlocks = new String[] {
+    private final String[] allBlocks = new String[]
+    {
         NONE,
         "land_block_1",
         "land_block_2",
@@ -274,7 +290,14 @@ public class AnimationTester extends JFrame
         "bridge_rising_left",
     };
 
+    /** [0-8][0-2] position in 3x3 grid, and triplet of consecutive animations for
+     * that position.
+     */
     private final String[][] animationNames;
+
+    /**
+     * Blocks don't animate, so just [0-8], one for each position.
+     */
     private final String[] blockNames;
 
     private static class InitUi implements Runnable
@@ -282,7 +305,8 @@ public class AnimationTester extends JFrame
         public AnimationTester animationTester;
 
         @Override
-        public void run() {
+        public void run()
+        {
             try
             {
                 animationTester = new AnimationTester( createConfig() );
@@ -327,6 +351,7 @@ public class AnimationTester extends JFrame
         this.numTilesX = 3;
         this.animationCache = new AnimationCache( new AnimationLoader() );
 
+        /** Name of .rea files (changed to caps it's also the name of the state) */
         this.animationNames = animationsFromConfig(
             atConfig.get( CFG_AT_ANIMATIONS ) );
 
@@ -348,13 +373,22 @@ public class AnimationTester extends JFrame
 
         getContentPane().add( canvas, java.awt.BorderLayout.CENTER );
 
-        loadBitmaps();
+        paint = new SwingPaint( null );
+
+        bitmapCache = new BitmapCache<SwingBitmap>(
+            new SwingBitmapLoader(),
+            new SwingBitmapScaler(),
+            SwingMain.cacheSize()
+        );
 
         Listener listener = new Listener();
         canvas.addMouseListener( listener );
+        canvas.addKeyListener( listener );
         addComponentListener( listener );
 
         setBoundsFromConfig();
+
+        setIcon();
 
         setTitle( t( "Animation Tester" ) );
         pack();
@@ -362,6 +396,7 @@ public class AnimationTester extends JFrame
 
         // Must do this after frame is made visible
         canvas.createBufferStrategy( 2 );
+        canvas.requestFocus();
     }
 
     private void setBoundsFromConfig()
@@ -373,77 +408,6 @@ public class AnimationTester extends JFrame
         {
             setLocation( x, y );
         }
-    }
-
-    private void loadBitmaps()
-    {
-        scaler = new SwingBitmapScaler();
-        paint = new SwingPaint( null );
-        SwingBitmapLoader bitmapLoader = new SwingBitmapLoader();
-
-        BitmapCache<SwingBitmap> bitmapCache = new BitmapCache<SwingBitmap>(
-            bitmapLoader, scaler, 500 );
-
-        frames = loadAllFrames( bitmapCache, animationNames );
-        blockBitmaps = loadAllBlockBitmaps( bitmapCache, blockNames );
-    }
-
-    private SwingAnimation[][] loadAllFrames(
-        BitmapCache<SwingBitmap> bitmapCache, String[][] animationNames )
-    {
-        SwingAnimation[][] ret =
-            new SwingAnimation[animationNames.length][];
-
-        int i = 0;
-        for ( String[] animationTriplet : animationNames )
-        {
-            ret[i] = new SwingAnimation[animationTriplet.length];
-            int j = 0;
-            for ( String animationName : animationTriplet )
-            {
-                if ( !animationName.equals( NONE ) )
-                {
-                    Animation animation = animationCache.get( animationName );
-                    if ( animation == null )
-                    {
-                        ++j;
-                        continue;
-                    }
-
-                    ret[i][j] = new SwingAnimation(
-                        bitmapCache,
-                        animation
-                    );
-                }
-                ++j;
-            }
-            ++i;
-        }
-        return ret;
-    }
-
-
-    private List<ScaledBitmap<SwingBitmap>> loadAllBlockBitmaps(
-        BitmapCache<SwingBitmap> bitmapCache, String[] blockNames )
-    {
-        List<ScaledBitmap<SwingBitmap>> ret =
-            new ArrayList<ScaledBitmap<SwingBitmap>>( blockNames.length );
-
-        for ( String blockName : blockNames )
-        {
-            if ( !blockName.equals( NONE ) )
-            {
-                try
-                {
-                    ret.add( bitmapCache.get( blockName ) );
-                }
-                catch ( FailedToLoadImage e )
-                {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return ret;
     }
 
     public static void main( String[] args )
@@ -461,26 +425,46 @@ public class AnimationTester extends JFrame
         }
     }
 
-    private void loop()
+    private class FrameCounter
     {
-        BufferStrategy strategy = canvas.getBufferStrategy();
+        private int frameSetNum ;
+        private int frameNum ;
 
-        Renderer<SwingBitmap, SwingPaint> renderer =
-            new Renderer<SwingBitmap, SwingPaint>( 0, 0, tileSize );
-
-        SoundPlayer<SwingBitmap> soundPlayer =
-            new SoundPlayer<SwingBitmap>( new SwingSound( false ) );
-
-        int frameSetNum = 0;
-        int frameNum = 0;
-        running = true;
-        while( running && this.isVisible() )
+        public FrameCounter( FrameCounter f )
         {
-            new DrawFrame(
-                strategy, renderer, soundPlayer, frameSetNum, frameNum ).run();
+            this.frameSetNum = f.frameSetNum;
+            this.frameNum = f.frameNum;
+        }
 
-            pause();
+        public FrameCounter()
+        {
+            frameSetNum = 0;
+            frameNum = 0;
+        }
 
+        @Override
+        public int hashCode()
+        {
+            return 31 * frameSetNum + frameNum;
+        }
+
+        @Override
+        public boolean equals( Object o )
+        {
+            if ( null == o )
+            {
+                return false;
+            }
+            if ( !(o instanceof FrameCounter ) )
+            {
+                return false;
+            }
+            FrameCounter f = (FrameCounter)o;
+            return this.frameSetNum == f.frameSetNum && this.frameNum == f.frameNum ;
+        }
+
+        public void inc()
+        {
             ++frameNum;
             if ( frameNum == 10 )
             {
@@ -492,6 +476,129 @@ public class AnimationTester extends JFrame
                 }
             }
         }
+
+        public void dec()
+        {
+            --frameNum;
+            if( frameNum == 0)
+            {
+                frameNum = 9;
+                --frameSetNum;
+                if( frameSetNum == 0 )
+                {
+                    frameSetNum = 2;
+                }
+            }
+        }
+
+        public int getFrameNum()
+        {
+            return frameNum;
+        }
+
+        public int getFrameSetNum()
+        {
+            return frameSetNum;
+        }
+    }
+
+    private void loop()
+    {
+        BufferStrategy strategy = canvas.getBufferStrategy();
+
+        Renderer<SwingBitmap, SwingPaint> renderer =
+            new Renderer<SwingBitmap, SwingPaint>( 0, 0, tileSize, bitmapCache );
+
+        SoundPlayer soundPlayer =
+            new SoundPlayer( SwingSound.create( false ) );
+
+        FrameCounter counter = new FrameCounter();
+        running = true;
+        while( running && this.isVisible() )
+        {
+            DrawFrame drawFrame = new DrawFrame(
+                strategy, renderer, soundPlayer, counter.getFrameSetNum(),
+                counter.getFrameNum() );
+            drawFrame.run();
+
+            switch ( runMode )
+            {
+            case STEP:
+                counter = keyStep(counter);
+                continue;
+            case RUN:
+                counter = runStep( counter );
+                continue;
+            case FRAME_DUMP:
+                counter = frameDumpStep( counter, drawFrame );
+                continue;
+            }
+        }
+    }
+
+    private FrameCounter keyStep( FrameCounter counter )
+    {
+        while( true )
+        {
+            try
+            {
+                Thread.sleep( 50 );
+            }
+            catch ( InterruptedException e )
+            {
+                // Ignore
+            }
+            if( forwardStep )
+            {
+                forwardStep = false;
+                counter.inc();
+                return counter;
+            }
+            if( backwardStep )
+            {
+                backwardStep = false;
+                counter.dec();
+                return counter;
+            }
+        }
+    }
+
+    private FrameCounter runStep( FrameCounter counter )
+    {
+        pause();
+        counter.inc();
+        return counter;
+    }
+
+    private FrameCounter frameDumpStep( FrameCounter counter, DrawFrame drawFrame )
+    {
+        try
+        {
+            if ( counter.equals( firstFrameDumped ) )
+            { // A whole set has been dumped. Revert to normal
+                runMode = Mode.RUN;
+                firstFrameDumped = null;
+                System.out.println();
+                counter.inc();
+                return counter;
+            }
+            if ( null == firstFrameDumped )
+            {
+                frameDumper = new FrameDumper();
+                firstFrameDumped = new FrameCounter( counter );
+            }
+            String frameID = String.format("%02d_%02d", counter.getFrameSetNum(), counter.getFrameNum() );
+            frameDumper.dump( canvas, drawFrame, frameID );
+
+            counter.inc();
+            return counter;
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            System.exit( 1 );
+            return null; // The compiler can be dumb.
+        }
     }
 
     private class DrawFrame extends BufferedDraw
@@ -499,12 +606,12 @@ public class AnimationTester extends JFrame
         private final int frameSetNum;
         private final int frameNum;
         private final Renderer<SwingBitmap, SwingPaint> renderer;
-        private final SoundPlayer<SwingBitmap> soundPlayer;
+        private final SoundPlayer soundPlayer;
 
         public DrawFrame(
             BufferStrategy strategy,
             Renderer<SwingBitmap, SwingPaint> renderer,
-            SoundPlayer<SwingBitmap> soundPlayer,
+            SoundPlayer soundPlayer,
             int frameSetNum,
             int frameNum
         )
@@ -527,11 +634,11 @@ public class AnimationTester extends JFrame
                 canvas.getHeight()
             );
 
-            List<Sprite<SwingBitmap>> sprites = new ArrayList<>();
+            List<Sprite> sprites = new ArrayList<>();
             int i = 0;
-            for ( ScaledBitmap<SwingBitmap> bmp : blockBitmaps )
+            for ( String block : blockNames )
             {
-                if ( bmp == null )
+                if ( block == null || block.equals( NONE ) )
                 {
                     ++i;
                     continue;
@@ -539,8 +646,8 @@ public class AnimationTester extends JFrame
 
                 java.awt.Point loc = int2dim( i );
                 sprites.add(
-                    new Sprite<SwingBitmap>(
-                        bmp,
+                    new Sprite(
+                        block,
                         null,
                         loc.x,
                         loc.y,
@@ -552,26 +659,34 @@ public class AnimationTester extends JFrame
             }
 
             i = 0;
-            for ( SwingAnimation[] bmpSets : frames )
+            for ( String[] animationSet : animationNames )
             {
-                SwingAnimation bmps = bmpSets[frameSetNum];
-                if ( bmps == null )
+                String animationName = animationSet[frameSetNum];
+                if ( animationName != null && !animationName.equals( NONE ) )
                 {
-                    ++i;
-                    continue;
-                }
-                java.awt.Point loc = int2dim( i );
-                SwingBitmapAndOffset bmp = bmps.get( frameNum );
-                Sprite<SwingBitmap> sprite = new Sprite<SwingBitmap>(
-                    bmp.bitmap,
-                    bmp.soundEffect,
-                    loc.x,
-                    loc.y,
-                    bmp.offsetX,
-                    bmp.offsetY
-                );
+                    Animation animation = animationCache.get( animationName );
+                    if ( animation != null )
+                    {
+                        Frame frame = animation.get( frameNum );
 
-                sprites.add( sprite );
+                        java.awt.Point loc = int2dim( i );
+                        Sprite sprite = new Sprite(
+                            frame.name,
+                            frame.soundEffect,
+                            loc.x,
+                            loc.y,
+                            frame.offsetX,
+                            frame.offsetY
+                        );
+
+                        if( frameLogging && Mode.FRAME_DUMP != runMode  )
+                        {
+                            System.out.println( frame.name );
+                        }
+
+                        sprites.add( sprite );
+                    }
+                }
                 ++i;
             }
 
@@ -599,7 +714,7 @@ public class AnimationTester extends JFrame
     {
         try
         {
-            Thread.sleep( 100 );
+            Thread.sleep( msFrameLength );
         }
         catch ( InterruptedException e )
         {
@@ -609,7 +724,7 @@ public class AnimationTester extends JFrame
 
     private static Config createConfig()
     {
-        Config.Definition definition = new Config.Definition();
+        ConfigSchema definition = new ConfigSchema();
 
         definition.set(
             CFG_AT_WINDOW_LEFT,
@@ -642,7 +757,8 @@ public class AnimationTester extends JFrame
             "The blocks selected to play in the animation tester"
         );
 
-        return new Config( definition, new RealFileSystem(), CONFIG_PATH );
+        return new Config(
+            definition, new ConfigFile( new RealFileSystem(), CONFIG_PATH ) );
     }
 
     private static String animationsToConfigString( String[][] animations )
@@ -701,5 +817,13 @@ public class AnimationTester extends JFrame
         }
 
         return cfgEntry.split( " " );
+    }
+
+    private void setIcon()
+    {
+        SwingBitmapLoader l = new SwingBitmapLoader();
+        int s = l.sizeFor( 128 );
+        SwingBitmap bmp = l.load( "rabbit_fall_01", s );
+        this.setIconImage(bmp.image);
     }
 }

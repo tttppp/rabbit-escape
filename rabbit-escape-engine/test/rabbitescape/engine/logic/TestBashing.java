@@ -386,4 +386,131 @@ public class TestBashing
             "#######"
         );
     }
+
+    @Test
+    public void Bash_purposefully_at_top_of_slope()
+    {
+        assertWorldEvolvesLike(
+            "rb/" + "\n" +
+            "#/#",
+
+            " r/" + "\n" +
+            "#h#",
+
+            "  K" + "\n" +
+            "#r#",
+
+            " r>" + "\n" +
+            "#/#",
+
+            "  r" + "\n" +
+            "#/#"
+        );
+    }
+
+    @Test
+    public void Bash_uselessly_at_top_of_slope()
+    {
+        assertWorldEvolvesLike(
+            "rb " + "\n" +
+            "#/#",
+
+            " r " + "\n" +
+            "#h#",
+
+            "   " + "\n" +
+            "#rI",
+
+            " r>" + "\n" +
+            "#/#",
+
+            "  r" + "\n" +
+            "#/#"
+        );
+
+        assertWorldEvolvesLike(
+            " bj" + "\n" +
+            "#\\#",
+
+            " j " + "\n" +
+            "#a#",
+
+            "   " + "\n" +
+            "Jj#",
+
+            "<j " + "\n" +
+            "#\\#",
+
+            "j  " + "\n" +
+            "#\\#"
+        );
+    }
+    
+    @Test
+    public void Bashing_fails_if_first_block_is_unbreakable()
+    {
+        assertWorldEvolvesLike(
+            "rbM" + "\n" +
+            "###",
+
+            " rI" + "\n" +
+            "###",
+
+            " ?M" + "\n" +
+            "###",
+
+            "<jM" + "\n" +
+            "###"
+        );
+    }
+
+    @Test
+    public void Bashing_fails_if_later_block_is_unbreakable()
+    {
+        assertWorldEvolvesLike(
+            "rb#M" + "\n" +
+            "####",
+
+            " rKM" + "\n" +
+            "####",
+
+            " r>M" + "\n" +
+            "####",
+
+            "  rI" + "\n" +
+            "####",
+
+            "  ?M" + "\n" +
+            "####",
+
+            " <jM" + "\n" +
+            "####"
+        );
+    }
+
+    @Test
+    public void Standing_on_slope_bashing_fails_if_first_block_is_unbreakable()
+    {
+        assertWorldEvolvesLike(
+            "  bM" + "\n" +
+            " r/#" + "\n" +
+            "####",
+
+            "   M" + "\n" +
+            "  rI" + "\n" +
+            "####",
+
+            "  ?M" + "\n" +
+            "  /#" + "\n" +
+            "####",
+
+            "  jM" + "\n" + // This is a bit glitchy
+            "  s#" + "\n" + // because the rabbit floats then falls.
+            "####",
+
+            "   M" + "\n" +
+            " +j#" + "\n" +
+            "####"
+        );
+    }
 }

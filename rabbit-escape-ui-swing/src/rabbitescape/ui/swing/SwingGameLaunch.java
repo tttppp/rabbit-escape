@@ -1,5 +1,6 @@
 package rabbitescape.ui.swing;
 
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
@@ -11,11 +12,20 @@ import static rabbitescape.engine.i18n.Translation.t;
 import rabbitescape.engine.LevelWinListener;
 import rabbitescape.engine.Token;
 import rabbitescape.engine.World;
+import rabbitescape.engine.config.Config;
+import rabbitescape.engine.solution.PlaceTokenAction;
+import rabbitescape.engine.solution.SolutionDemo;
+import rabbitescape.engine.solution.SolutionInterpreter;
+import rabbitescape.engine.solution.SolutionRecorder;
+import rabbitescape.engine.solution.SolutionRecorderTemplate;
+
 import rabbitescape.engine.util.Util;
 import rabbitescape.render.GameLaunch;
+import rabbitescape.render.androidlike.Sound;
 import rabbitescape.render.gameloop.GameLoop;
 import rabbitescape.render.gameloop.GeneralPhysics;
 import rabbitescape.render.gameloop.Physics;
+import rabbitescape.render.gameloop.WaterAnimation;
 import rabbitescape.ui.swing.SwingGameInit.WhenUiReady;
 
 public class SwingGameLaunch implements GameLaunch
@@ -46,6 +56,7 @@ public class SwingGameLaunch implements GameLaunch
         }
     }
 
+    public static final String NOT_DEMO_MODE = "NOT_DEMO_MODE";
     public final World world;
     private final GeneralPhysics physics;
     public final SwingGraphics graphics;
@@ -53,18 +64,51 @@ public class SwingGameLaunch implements GameLaunch
 
     private final GameLoop loop;
     private final MainJFrame frame;
+    public final SolutionRecorderTemplate solutionRecorder;
+    private final SwingPlayback swingPlayback;
+    private final FrameDumper frameDumper;
 
+    /**
+     * @param solutionIndex natural number values indicate demo mode. It is the index of the
+     *                      solution from the rel file to play.
+     */
     public SwingGameLaunch(
         SwingGameInit init,
         World world,
         LevelWinListener winListener,
-        SwingSound sound
+        Sound sound,
+        Config config,
+        PrintStream debugout,
+        String solution,
+        boolean frameDumping
     )
     {
         this.world = world;
-        this.frame = init.frame;
-        this.physics = new GeneralPhysics( world, winListener );
 
+        SolutionInterpreter solutionInterpreter = createSolutionInterpreter( solution, world );
+
+        this.frame = init.frame;
+        this.solutionRecorder = new SolutionRecorder();
+        if ( frameDumping )
+        {
+            this.frameDumper = new FrameDumper();
+        }
+        else
+        {
+            this.frameDumper = FrameDumper.createInactiveDumper();
+        }
+        this.swingPlayback = new SwingPlayback( this );
+        WaterAnimation waterAnimation = new WaterAnimation( world ) ;
+        this.physics = new GeneralPhysics(
+            world,
+            waterAnimation,
+            winListener,
+            false,
+            solutionRecorder,
+            solutionInterpreter,
+            swingPlayback,
+            frameDumping
+        );
         // This blocks until the UI is ready:
         WhenUiReady uiPieces = init.waitForUi.waitForUi();
 
@@ -73,14 +117,40 @@ public class SwingGameLaunch implements GameLaunch
             world,
             uiPieces.jframe,
             uiPieces.bitmapCache,
-            sound
+            sound,
+            frameDumper,
+            waterAnimation
         );
+
+        // Used for redraw after window is resized.
+        frame.setGraphics( graphics );
 
         jframe.setGameLaunch( this );
 
         sound.setMusic( world.music );
 
-        loop = new GameLoop( new SwingInput(), physics, graphics );
+        loop = new GameLoop(
+            new SwingInput(), physics, waterAnimation, graphics, config, debugout );
+    }
+
+    public GameUi getUi()
+    {
+        return jframe;
+    }
+
+    public void toggleSpeed()
+    {
+        physics.fast = !physics.fast;
+    }
+
+    private static SolutionInterpreter createSolutionInterpreter( String solution, World world )
+    {
+        if ( solution.equals( NOT_DEMO_MODE ) )
+        {
+            return SolutionInterpreter.getNothingPlaying();
+        }
+        SolutionDemo demo = new SolutionDemo( solution, world );
+        return new SolutionInterpreter( demo.solution );
     }
 
     public void stop()
@@ -96,6 +166,7 @@ public class SwingGameLaunch implements GameLaunch
         // focus so keystrokes are not lost.
         frame.getRootPane().grabFocus();
         loop.run();
+        System.out.println( solutionRecorder.getRecord() );
     }
 
     private static class AnswerHolder
@@ -195,6 +266,11 @@ public class SwingGameLaunch implements GameLaunch
      */
     private void showIntroDialog()
     {
+        if (inDemoMode())
+        {
+            return;
+        }
+
         Util.Function<String, String> insertNewlines =
             new Util.Function<String, String>()
         {
@@ -211,7 +287,7 @@ public class SwingGameLaunch implements GameLaunch
                 new Object[] { DialogText.introText( this.frame, world ) },
                 Util.map(
                     insertNewlines,
-                    new String[] { world.hint1, world.hint2, world.hint3 },
+                    world.hints,
                     new String[3]
                 )
             )
@@ -305,6 +381,19 @@ public class SwingGameLaunch implements GameLaunch
      */
     private void showWonDialog()
     {
+        if (inDemoMode())
+        {
+            try
+            {
+                Thread.sleep( 2000 );
+            }
+            catch ( InterruptedException e )
+            {
+                // Ignore
+            }
+            return;
+        }
+
         showDialog(
             t( "You won!" ),
             t(
@@ -320,6 +409,19 @@ public class SwingGameLaunch implements GameLaunch
      */
     private void showLostDialog()
     {
+        if (inDemoMode())
+        {
+            try
+            {
+                Thread.sleep( 2000 );
+            }
+            catch ( InterruptedException e )
+            {
+                // Ignore
+            }
+            return;
+        }
+
         showDialog(
             t( "You lost!" ),
             t(
@@ -376,6 +478,10 @@ public class SwingGameLaunch implements GameLaunch
         {
             graphics.playSound( "place_token" );
         }
+        if ( prev != now )
+        {
+            solutionRecorder.append( new PlaceTokenAction( tileX, tileY ) );
+        }
         return now;
     }
 
@@ -387,5 +493,10 @@ public class SwingGameLaunch implements GameLaunch
     public void addStatsChangedListener( Physics.StatsChangedListener listener )
     {
         physics.addStatsChangedListener( listener );
+    }
+
+    private boolean inDemoMode()
+    {
+        return ( !physics.solutionInterpreter.emptySteps );
     }
 }

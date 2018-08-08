@@ -3,6 +3,7 @@ package rabbitescape.engine.logic;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
 
+import static rabbitescape.engine.ChangeDescription.State.*;
 import static rabbitescape.engine.textworld.TextWorldManip.*;
 import static rabbitescape.engine.util.WorldAssertions.*;
 
@@ -14,6 +15,14 @@ import rabbitescape.engine.World;
 public class TestTokens
 {
     // TODO: slopes and bridges
+
+    @Test
+    public void Tokens_return_their_state_names_lowercase()
+    {
+        Token t = new Token( 1, 2, Token.Type.bash );
+        t.state = TOKEN_BASH_FALLING;
+        assertThat(t.stateName(), equalTo("token_bash_falling"));
+    }
 
     @Test
     public void Tokens_fall_slowly_and_stop_on_ground()
@@ -262,7 +271,7 @@ public class TestTokens
             "#D#"
         );
     }
-    
+
     @Test
     public void Rabbits_falling_to_death_do_not_consume_tokens()
     {
@@ -285,7 +294,7 @@ public class TestTokens
             ":*=\\"
         );
 
-        assertWorldEvolvesLike( 
+        assertWorldEvolvesLike(
             world,
             8,
             new String[] {
@@ -309,7 +318,7 @@ public class TestTokens
                 ":*=/db"
             });
     }
-    
+
     @Test
     public void Rabbits_falling_and_living_do_consume_tokens()
     {
@@ -322,7 +331,7 @@ public class TestTokens
             "#########"
         );
 
-        assertWorldEvolvesLike( 
+        assertWorldEvolvesLike(
             world,
             8,
             new String[] {
@@ -333,5 +342,24 @@ public class TestTokens
                 "####)(\\ #",
                 "####### #"
             });
+    }
+
+    @Test
+    public void Tokens_start_off_in_non_falling_states()
+    {
+        // See https://github.com/andybalaam/rabbit-escape/issues/447
+
+        World world = createWorld(
+            "  ",
+            " /",
+            "##"
+        );
+
+        Token inAir = new Token( 0, 0, Token.Type.brolly, world );
+        Token onSlope = new Token( 1, 1, Token.Type.brolly, world );
+
+        // Until a time step passes, these are in non-moving states
+        assertThat( inAir.state, is( TOKEN_BROLLY_STILL ) );
+        assertThat( onSlope.state, is( TOKEN_BROLLY_ON_SLOPE ) );
     }
 }

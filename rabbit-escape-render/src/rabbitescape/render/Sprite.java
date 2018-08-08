@@ -1,13 +1,13 @@
 package rabbitescape.render;
 
-import rabbitescape.render.androidlike.Bitmap;
+import rabbitescape.engine.util.Position;
 
 /**
- * A Bitmap and a location at which to draw it.
+ * A Bitmap name and a location at which to draw it.
  */
-public class Sprite<T extends Bitmap>
+public class Sprite
 {
-    public final ScaledBitmap<T> bitmap;
+    public final String bitmapName;
     public final String soundEffect;
     public final int tileX;
     public final int tileY;
@@ -15,15 +15,32 @@ public class Sprite<T extends Bitmap>
     private final int offset32X; // X offset relative to a 32x32 image
     private final int offset32Y; // X offset relative to a 32x32 image
 
+    public Sprite(
+        String bitmapName,
+        String soundEffect,
+        Position tilePos,
+        Position offset
+    )
+    {
+        this(
+            bitmapName,
+            soundEffect,
+            tilePos.x,
+            tilePos.y,
+            offset.x,
+            offset.y
+        );
+    }
+
     /**
-     * @param bitmap
+     * @param bitmapName
      * @param tileX
      * @param tileY
      * @param offset32X x offset (relative to 32x32 image)
      * @param offset32Y y offset (relative to 32x32 image)
      */
     public Sprite(
-        ScaledBitmap<T> bitmap,
+        String bitmapName,
         String soundEffect,
         int tileX,
         int tileY,
@@ -31,7 +48,7 @@ public class Sprite<T extends Bitmap>
         int offset32Y
     )
     {
-        this.bitmap = bitmap;
+        this.bitmapName = bitmapName;
         this.soundEffect = soundEffect;
         this.tileX = tileX;
         this.tileY = tileY;

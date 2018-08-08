@@ -27,6 +27,8 @@ import javax.swing.KeyStroke;
 import rabbitescape.engine.Token;
 import rabbitescape.engine.config.Config;
 import rabbitescape.engine.config.ConfigTools;
+import rabbitescape.engine.config.TapTimer;
+import rabbitescape.engine.solution.SelectAction;
 import rabbitescape.render.BitmapCache;
 import rabbitescape.render.gameloop.Physics.StatsChangedListener;
 
@@ -38,8 +40,8 @@ public class GameUi implements StatsChangedListener
         private int startY = -1;
         private long msTimePress = 0;
         /** Time in ms. Longer press-release intervals are interpreted as drags */
-        private long msClickThreshold =
-            (long)ConfigTools.getInt( uiConfig, CFG_CLICK_THRESHOLD_MS );
+        private final long msClickThreshold =
+            ConfigTools.getInt( uiConfig, CFG_CLICK_THRESHOLD_MS );
 
         @Override
         public void windowClosing( WindowEvent e )
@@ -56,6 +58,7 @@ public class GameUi implements StatsChangedListener
         @Override
         public void mousePressed( MouseEvent e )
         {
+            TapTimer.newTap();
             if ( noScrollRequired() )
             {
                 click( e.getPoint() );
@@ -336,6 +339,7 @@ public class GameUi implements StatsChangedListener
             public void abilityChosen( Token.Type ability )
             {
                 chooseAbility( ability );
+                gameLaunch.solutionRecorder.append( new SelectAction( ability ) );
             }
         } );
 
@@ -424,6 +428,17 @@ public class GameUi implements StatsChangedListener
 
         MenuTools.clickOnKey( menu.pause, "pause", KeyEvent.VK_P );
 
+        menu.speed.addActionListener( new ActionListener()
+        {
+            @Override
+            public void actionPerformed( ActionEvent evt )
+            {
+                gameLaunch.toggleSpeed();
+            }
+        } );
+
+        MenuTools.clickOnKey( menu.speed, "speed up", KeyEvent.VK_S );
+
         canvasScrollBarX.addAdjustmentListener(
             new AdjustmentListener()
             {
@@ -463,7 +478,8 @@ public class GameUi implements StatsChangedListener
         this.topBar = new TopBar(
             backgroundColor,
             gameLaunch.world.num_to_save,
-            middlePanel
+            middlePanel,
+            gameLaunch.world.name
         );
 
         frame.pack();
@@ -602,18 +618,29 @@ public class GameUi implements StatsChangedListener
         gameLaunch.graphics.setMuted( muted );
     }
 
+    private Point pixelToCell( Point pixelPosition )
+    {
+        return new Point(
+                             ( pixelPosition.x - gameLaunch.graphics.renderer.offsetX )
+                               / worldTileSizeInPixels,
+                             ( pixelPosition.y - gameLaunch.graphics.renderer.offsetY )
+                               / worldTileSizeInPixels
+                               );
+    }
+
     private void click( Point pixelPosition )
+    {
+        Point p = pixelToCell( pixelPosition );
+
+        addToken( p.x , p.y );
+    }
+
+    protected void addToken(int tileX, int tileY )
     {
         if ( chosenAbility == null )
         {
             return;
         }
-
-        int tileX = ( pixelPosition.x - gameLaunch.graphics.renderer.offsetX )
-            / worldTileSizeInPixels;
-
-        int tileY = ( pixelPosition.y - gameLaunch.graphics.renderer.offsetY )
-            / worldTileSizeInPixels;
 
         int numLeft = gameLaunch.addToken( tileX, tileY, chosenAbility );
 

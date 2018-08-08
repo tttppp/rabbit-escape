@@ -2,7 +2,7 @@ package rabbitescape.engine.behaviours;
 
 import static rabbitescape.engine.ChangeDescription.State.*;
 import static rabbitescape.engine.Direction.*;
-import static rabbitescape.engine.Block.Type.*;
+import static rabbitescape.engine.Block.Shape.*;
 
 import rabbitescape.engine.*;
 import rabbitescape.engine.ChangeDescription.State;
@@ -37,6 +37,7 @@ public class Walking extends Behaviour
                        t.isWall( aboveNext )
                     || Blocking.blockerAt( t.world, nextX, nextY )
                     || t.isRoof( above )
+                    || ( t.isCresting() && Blocking.blockerAt( t.world, nextX, t.rabbit.y ) )
                     )
                 {
                     return rl(
@@ -76,6 +77,7 @@ public class Walking extends Behaviour
                 if (
                        t.isWall( next )
                     || Blocking.blockerAt( t.world, nextX, nextY )
+                    || ( t.isValleying() && Blocking.blockerAt( t.world, nextX, t.rabbit.y ) )
                     )
                 {
                     return rl(
@@ -185,6 +187,7 @@ public class Walking extends Behaviour
     }
 
     @Override
+    @SuppressWarnings("fallthrough")
     public boolean behave( World world, Rabbit rabbit, State state )
     {
         switch ( state )
@@ -274,6 +277,7 @@ public class Walking extends Behaviour
                 return true;
             }
             case RABBIT_TURNING_LEFT_TO_RIGHT:
+                rabbit.onSlope = false; // Intentional fall-through
             case RABBIT_TURNING_LEFT_TO_RIGHT_RISING:
             case RABBIT_TURNING_LEFT_TO_RIGHT_LOWERING:
             {
@@ -282,6 +286,7 @@ public class Walking extends Behaviour
                 return true;
             }
             case RABBIT_TURNING_RIGHT_TO_LEFT:
+                rabbit.onSlope = false; // Intentional fall-through
             case RABBIT_TURNING_RIGHT_TO_LEFT_RISING:
             case RABBIT_TURNING_RIGHT_TO_LEFT_LOWERING:
             {
@@ -324,8 +329,8 @@ public class Walking extends Behaviour
         return (
                block != null
             && (
-                   block.type == bridge_up_left
-                || block.type == bridge_up_right
+                   block.shape == BRIDGE_UP_LEFT
+                || block.shape == BRIDGE_UP_RIGHT
             )
         );
     }

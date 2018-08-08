@@ -2,6 +2,8 @@ package rabbitescape.engine.solution;
 
 import static rabbitescape.engine.util.Util.*;
 
+import java.io.PrintStream;
+
 import rabbitescape.engine.World;
 import rabbitescape.engine.Token.Type;
 import rabbitescape.engine.World.CantAddTokenOutsideWorld;
@@ -12,30 +14,44 @@ import rabbitescape.engine.World.NoneOfThisAbilityLeft;
 import rabbitescape.engine.solution.SolutionExceptions;
 import rabbitescape.engine.textworld.TextWorldManip;
 import rabbitescape.engine.util.Dimension;
+import rabbitescape.engine.util.Util;
 
 public class SolutionRunner
 {
-    public static void runSolution( Solution solution, World world )
+    /**
+     * @return true if the supplied solution solved the level
+     * @param output  A stream (eg System.out) to print to. May be null if no output
+     *                is required.
+     */
+    public static boolean runSolution( Solution solution, World world,
+        PrintStream output, boolean genTest )
         throws SolutionExceptions.ProblemRunningSolution
     {
         SandboxGame sandboxGame = new SandboxGame( world );
         SolutionInterpreter interpreter = new SolutionInterpreter( solution );
 
-        runSolutionInSandbox( interpreter, sandboxGame );
+        return runSolutionInSandbox( interpreter, sandboxGame, output, genTest );
     }
 
-    public static void runSingleCommand(
-        SolutionCommand command, final SandboxGame sandboxGame )
+    public static boolean runSolution( Solution solution, World world)
+    {
+        return runSolution( solution, world, null, false);
+    }
+
+    public static void runPartialSolution(
+        Solution solution, final SandboxGame sandboxGame )
     {
         SolutionInterpreter interpreter = new SolutionInterpreter(
-            new Solution( command ), false );
+            solution, false );
 
-        runSolutionInSandbox( interpreter, sandboxGame );
+        runSolutionInSandbox( interpreter, sandboxGame, null, false );
     }
 
-    private static void runSolutionInSandbox(
+    private static boolean runSolutionInSandbox(
         SolutionInterpreter interpreter,
-        SandboxGame sandboxGame
+        SandboxGame sandboxGame,
+        PrintStream output,
+        boolean genTest
     )
     {
         SolutionTimeStep step = interpreter.next(
@@ -46,6 +62,11 @@ public class SolutionRunner
             {
                 SolutionTimeStep nextStep = interpreter.next(
                     sandboxGame.getWorld().completionState() );
+
+                if ( null != output )
+                {
+                    printStep( output,  sandboxGame.getWorld(), genTest );
+                }
 
                 runTimeStep( sandboxGame, step, nextStep );
 
@@ -61,6 +82,29 @@ public class SolutionRunner
                 );
                 throw e;
             }
+        }
+
+        return sandboxGame.getWorld().completionState().equals(
+            CompletionState.WON );
+    }
+
+    private static void printStep(PrintStream s, World w, boolean genTest )
+    {
+        if ( genTest )
+        {
+            s.println( TextWorldManip.renderWorldForTest( w ) );
+        }
+        else
+        {
+            s.println( "Waiting:"+w.num_waiting );
+            s.println( "  Saved:"+w.num_saved );
+            s.println
+            (
+                Util.join( "\n",
+                    TextWorldManip.renderWorld(
+                        w, false, true )
+                )
+            );
         }
     }
 

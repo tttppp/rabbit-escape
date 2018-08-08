@@ -1,18 +1,22 @@
 package rabbitescape.engine.config;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 import rabbitescape.engine.err.RabbitEscapeException;
-import rabbitescape.engine.util.FileSystem;
+import rabbitescape.engine.util.Util;
 
-public class Config implements IConfig
+/**
+ * Holds and retrieves configuration information that is saved in some
+ * underlying storage.
+ *
+ * Handles a schema of which keys are allowed, and automatically upgrades
+ * old config from previous versions.
+ */
+public class Config
 {
+    public static String CFG_VERSION = "config.version";
+
     public static class UnknownKey extends RabbitEscapeException
     {
         private static final long serialVersionUID = 1L;
@@ -25,126 +29,49 @@ public class Config implements IConfig
         }
     }
 
-    public static class UnableToLoad extends RabbitEscapeException
+    // ---
+
+    public final ConfigSchema schema;
+    private final IConfigStorage storage;
+
+    public Config(
+        ConfigSchema schema,
+        IConfigStorage storage,
+        IConfigUpgrade... upgrades
+    )
     {
-        private static final long serialVersionUID = 1L;
+        this.schema = schema;
+        this.storage = storage;
 
-        public final String filePath;
-
-        public UnableToLoad( String filePath, Exception cause )
+        for( int i = version(); i < upgrades.length; ++i )
         {
-            super( cause );
-            this.filePath = filePath;
+            upgrades[i].run( storage );
+            Util.reAssert(
+                version() == i + 1,
+                "Config upgrade to version " + ( i + 1 )
+                + " did not update the version correctly - version is: "
+                + version()
+            );
+            storage.save( this );
         }
     }
 
-    public static class UnableToSave extends RabbitEscapeException
-    {
-        private static final long serialVersionUID = 1L;
-
-        public final String filePath;
-
-        public UnableToSave( String filePath, Exception cause )
-        {
-            super( cause );
-            this.filePath = filePath;
-        }
-    }
-
-    public static class Definition
-    {
-        private final Map<String, String> defaults = new HashMap<>();
-
-        private final Map<String, String> descriptions = new HashMap<>();
-
-        public void set( String key, String defaultValue, String description )
-        {
-            defaults.put( key, defaultValue );
-            descriptions.put( key, description );
-        }
-
-        public String getDefault( String key )
-        {
-            String ret = defaults.get( key );
-            if ( ret == null )
-            {
-                throw new UnknownKey( key );
-            }
-            return ret;
-        }
-
-        public void checkKeyExists( String key )
-        {
-            getDefault( key );
-        }
-
-        public String getDescription( String key )
-        {
-            String ret = descriptions.get( key );
-            if ( ret == null )
-            {
-                throw new UnknownKey( key );
-            }
-            return ret;
-        }
-    }
-
-    private final Definition definition;
-    private final Map<String, String> values;
-    private final FileSystem fs;
-    private final String filePath;
-
-    public Config( Definition definition, FileSystem fs, String filePath )
-    {
-        this.definition = definition;
-        this.fs = fs;
-        this.filePath = filePath;
-        this.values = new HashMap<>();
-        load();
-    }
-
-    private void load()
-    {
-        if ( fs == null || filePath == null || !fs.exists( filePath ) )
-        {
-            return;
-        }
-
-        Properties props = new Properties();
-        try
-        {
-            props.load(
-                new ByteArrayInputStream( fs.read( filePath ).getBytes() ) );
-        }
-        catch ( Exception e )
-        {
-            throw new UnableToLoad( filePath, e );
-        }
-
-        for ( String name : props.stringPropertyNames() )
-        {
-            set( name, props.getProperty( name ) );
-        }
-    }
-
-    @Override
     public void set( String key, String value )
     {
-        definition.checkKeyExists( key ); // Check the key exists
+        schema.checkKeyExists( key ); // Check the key exists
         if ( ! get( key ).equals( value ) )
         {
-            values.put( key, value );
+            storage.set( key, value );
         }
     }
 
-    @Override
     public String get( String key )
     {
-        String ret = values.get( key );
+        String ret = storage.get( key );
 
         if ( ret == null )
         {
-            return definition.getDefault( key );
+            return schema.getDefault( key );
         }
         else
         {
@@ -152,70 +79,27 @@ public class Config implements IConfig
         }
     }
 
-    @Override
     public void save()
     {
-        try
-        {
-            fs.mkdirs( fs.parent( filePath ) );
-            fs.write( filePath, toString() );
-        }
-        catch ( IOException e )
-        {
-            throw new UnableToSave( filePath, e );
-        }
+        storage.save( this );
     }
 
-    @Override
-    public String toString()
+    public SortedSet<String> keys()
     {
-        StringBuilder ret = new StringBuilder();
-
-        // Tree set for sorting
-        TreeSet<String> keys = new TreeSet<>(
-            definition.defaults.keySet() );
-
-        boolean first = true;
-        for ( String key: keys )
-        {
-            if ( first )
-            {
-                first = false;
-            }
-            else
-            {
-                ret.append( "\n" );
-            }
-
-            ret.append( "# " );
-            ret.append( definition.getDescription( key ) );
-            ret.append( "\n" );
-            if ( ! values.containsKey( key ) )
-            {
-                ret.append( '#' );
-            }
-            ret.append( propertyLine( key ) );
-            ret.append( "\n" );
-        }
-
-        return ret.toString();
+        return new TreeSet<String>( schema.defaults.keySet() );
     }
 
-    private String propertyLine( String key )
+    public int version()
     {
-        Properties props = new Properties();
-        props.setProperty( key, get( key ) );
-        StringWriter writer = new StringWriter();
-        try
-        {
-            props.store( writer, null );
-        }
-        catch ( IOException e )
-        {
-            // Should never happen
-            throw new RuntimeException( e );
-        }
+        String ret = storage.get( Config.CFG_VERSION );
 
-        return writer.toString().split( "\n" )[1];
+        if ( ret == null )
+        {
+            return 0;
+        }
+        else
+        {
+            return Integer.parseInt( ret );
+        }
     }
 }

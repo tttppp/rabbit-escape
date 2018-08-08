@@ -5,17 +5,25 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferStrategy;
 import java.util.List;
 
+import rabbitescape.engine.Thing;
 import rabbitescape.engine.World;
 import rabbitescape.engine.World.CompletionState;
+import rabbitescape.engine.util.Util;
 import rabbitescape.render.AnimationCache;
 import rabbitescape.render.AnimationLoader;
 import rabbitescape.render.BitmapCache;
 import rabbitescape.render.GraphPaperBackground;
+import rabbitescape.render.PolygonBuilder;
 import rabbitescape.render.Renderer;
 import rabbitescape.render.SoundPlayer;
 import rabbitescape.render.Sprite;
 import rabbitescape.render.SpriteAnimator;
+import rabbitescape.render.Overlay;
+import rabbitescape.render.Vertex;
+import rabbitescape.render.androidlike.Path;
+import rabbitescape.render.androidlike.Sound;
 import rabbitescape.render.gameloop.Graphics;
+import rabbitescape.render.gameloop.WaterAnimation;
 
 public class SwingGraphics implements Graphics
 {
@@ -30,21 +38,31 @@ public class SwingGraphics implements Graphics
         private static final SwingPaint graphPaperMinor =
             new SwingPaint( new Color( 235, 243, 255 ) );
 
+        private static final SwingPaint waterColor =
+            new SwingPaint( new Color( 10, 100, 220, 100 ) );
+
         private final java.awt.Canvas canvas;
         private final Renderer<SwingBitmap, SwingPaint> renderer;
-        private final SoundPlayer<SwingBitmap> soundPlayer;
-        private final SpriteAnimator<SwingBitmap> animator;
+        private final SoundPlayer soundPlayer;
+        private final SpriteAnimator animator;
         private final int frameNum;
         private final World world;
+        private final WaterAnimation waterAnimation;
+
+        static
+        {
+            waterColor.setStyle( SwingPaint.Style.FILL );
+        }
 
         public DrawFrame(
             BufferStrategy strategy,
             java.awt.Canvas canvas,
             Renderer<SwingBitmap, SwingPaint> renderer,
-            SoundPlayer<SwingBitmap> soundPlayer,
-            SpriteAnimator<SwingBitmap> animator,
+            SoundPlayer soundPlayer,
+            SpriteAnimator animator,
             int frameNum,
-            World world
+            World world,
+            WaterAnimation waterAnimation
         )
         {
             super( strategy );
@@ -54,6 +72,7 @@ public class SwingGraphics implements Graphics
             this.animator = animator;
             this.frameNum = frameNum;
             this.world = world;
+            this.waterAnimation = waterAnimation;
         }
 
         @Override
@@ -71,7 +90,9 @@ public class SwingGraphics implements Graphics
                 graphPaperMinor
             );
 
-            List<Sprite<SwingBitmap>> sprites = animator.getSprites( frameNum );
+            drawPolygons( waterAnimation, swingCanvas );
+
+            List<Sprite> sprites = animator.getSprites( frameNum );
 
             renderer.render(
                 swingCanvas,
@@ -79,44 +100,108 @@ public class SwingGraphics implements Graphics
                 white
             );
 
-            soundPlayer.play( sprites );
+            if ( world.paused )
+            {
+                tacticalOverlay( swingCanvas, world );
+            }
+
+            if ( null != soundPlayer )
+            {
+                soundPlayer.play( sprites );
+            }
         }
+
+        private void tacticalOverlay( SwingCanvas swingCanvas, World world )
+        {
+            SwingPaint dull = new SwingPaint( new Color( 70, 70, 70, 200 ) );
+            swingCanvas.drawColor( dull );
+
+            Overlay overlay = new Overlay( world );
+            SwingPaint textPaint =
+                new SwingPaint( new Color( 100, 255, 100, 255 ) );
+
+
+            int h = swingCanvas.stringHeight();
+
+            for ( Thing t : overlay.items )
+            {
+                String notation = overlay.at( t.x, t.y );
+
+                String[] lines = Util.split( notation, "\n" );
+
+                for ( int i = 0; i < lines.length ; i++ )
+                {
+                    int x = renderer.offsetX + t.x * renderer.tileSize;
+                    int y = renderer.offsetY + t.y * renderer.tileSize + i * h;
+                    x += ( renderer.tileSize - swingCanvas.stringWidth( lines[i] ) ) / 2; // centre
+                    y += ( renderer.tileSize - h * lines.length ) / 2 ;
+                    swingCanvas.drawText( lines[i],
+                        x,
+                        y,
+                        textPaint);
+                }
+            }
+        }
+
+        public void drawPolygons( WaterAnimation wa, SwingCanvas swingCanvas )
+        {
+            float f = renderer.tileSize / 32f;
+            for ( PolygonBuilder pb : wa.calculatePolygons() )
+            {
+                Path p = pb.path( f,
+                    new Vertex( renderer.offsetX, renderer.offsetY ) );
+                swingCanvas.drawPath( p, waterColor );
+            }
+        }
+
     }
 
-    private final World world;
+    public final World world;
 
     private final GameUi jframe;
     private final BufferStrategy strategy;
-    private final AnimationCache animationCache;
-    private final SpriteAnimator<SwingBitmap> animator;
+    private final SpriteAnimator animator;
+    private final FrameDumper frameDumper;
+    private final WaterAnimation waterAnimation;
 
     public final Renderer<SwingBitmap, SwingPaint> renderer;
-    private final SoundPlayer<SwingBitmap> soundPlayer;
+    private final SoundPlayer soundPlayer;
 
     private int prevScrollX;
     private int prevScrollY;
     private CompletionState lastWorldState;
 
+    private int lastFrame;
+    private volatile boolean drawing;
+
     public SwingGraphics(
         World world,
         GameUi jframe,
         BitmapCache<SwingBitmap> bitmapCache,
-        SwingSound sound
+        Sound sound,
+        FrameDumper frameDumper,
+        WaterAnimation waterAnimation
     )
     {
         this.world = world;
         this.jframe = jframe;
         this.strategy = jframe.canvas.getBufferStrategy();
-        this.animationCache = new AnimationCache( new AnimationLoader() );
-        this.animator = new SpriteAnimator<SwingBitmap>(
-            world, bitmapCache, animationCache );
+        this.animator = new SpriteAnimator(
+            world, new AnimationCache( new AnimationLoader() ) );
 
-        this.renderer = new Renderer<SwingBitmap, SwingPaint>( 0, 0, -1 );
-        this.soundPlayer = new SoundPlayer<SwingBitmap>( sound );
+        this.renderer = new Renderer<SwingBitmap, SwingPaint>(
+            0, 0, -1, bitmapCache );
+
+        this.soundPlayer = new SoundPlayer( sound );
 
         this.prevScrollX = -1;
         this.prevScrollY = -1;
         this.lastWorldState = null;
+        this.frameDumper = frameDumper;
+        this.waterAnimation = waterAnimation;
+
+        this.lastFrame = -1;
+        this.drawing = false;
     }
 
     @Override
@@ -124,15 +209,56 @@ public class SwingGraphics implements Graphics
     {
         setRendererOffset( renderer );
 
-        new DrawFrame(
+        DrawFrame df = new DrawFrame(
             strategy,
             jframe.canvas,
             renderer,
             soundPlayer,
             animator,
             frame,
-            world
-        ).run();
+            world,
+            waterAnimation
+        );
+
+        df.run();
+
+        frameDumper.dump( jframe.canvas, df );
+
+        lastFrame = frame;
+    }
+
+    public void redraw()
+    {
+        // We may be invoked from multiple threads - give up if we're already
+        // drawing.
+        if ( drawing )
+        {
+            return;
+        }
+        drawing = true;
+
+        // Can't redraw before drawing
+        if ( -1 == lastFrame )
+        {
+            return;
+        }
+
+        setRendererOffset( renderer );
+
+        DrawFrame df = new DrawFrame(
+            strategy,
+            jframe.canvas,
+            renderer,
+            null, // Do not repeat sounds
+            animator,
+            lastFrame,
+            world,
+            waterAnimation
+        );
+
+        df.run();
+
+        drawing = false;
     }
 
     public void setTileSize( int timeSize )

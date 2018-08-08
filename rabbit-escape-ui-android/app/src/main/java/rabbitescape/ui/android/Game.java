@@ -1,46 +1,41 @@
 package rabbitescape.ui.android;
 
-import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
 
 import rabbitescape.engine.LevelWinListener;
 import rabbitescape.engine.World;
+import rabbitescape.engine.config.Config;
 import rabbitescape.render.BitmapCache;
 
 public class Game
 {
-    // Saved state (saved by GameSurfaceView)
     public final AndroidGameLaunch gameLaunch;
-
-    // Transient state
-    private final Thread thread;
+    private Thread thread;
 
     public Game(
-        SurfaceHolder surfaceHolder,
         BitmapCache<AndroidBitmap> bitmapCache,
-        Resources resources,
+        Config config,
         World world,
         LevelWinListener winListener,
-        float displayDensity,
         Bundle savedInstanceState
     )
     {
         gameLaunch = new AndroidGameLaunch(
-            surfaceHolder,
             bitmapCache,
-            resources,
+            config,
             world,
             winListener,
-            displayDensity,
             savedInstanceState
         );
-
-        thread = new Thread( gameLaunch, "GameLaunch" );
     }
 
-    public void start()
+    public void start( SurfaceHolder surfaceHolder )
     {
+        gameLaunch.graphics.surfaceHolder = surfaceHolder;
+        gameLaunch.readyToRun();
+
+        thread = new Thread( gameLaunch, "GameLaunch" );
         thread.start();
     }
 
@@ -56,5 +51,8 @@ public class Game
             // Should never happen
             e.printStackTrace();
         }
+
+        thread = null;
+        gameLaunch.graphics.surfaceHolder = null;
     }
 }

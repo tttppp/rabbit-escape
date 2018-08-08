@@ -88,9 +88,10 @@ public class SolutionParser
             return new AssertStateAction(
                 CompletionState.valueOf( actionString ) );
         }
-        else if ( untilMatcher.matches() ) {
+        else if ( untilMatcher.matches() )
+        {
             CompletionState state = CompletionState.valueOf( untilMatcher.group( 1 ) );
-            return new UntilAction(state);
+            return new UntilAction( state );
         }
         else if ( WAIT_REGEX.matcher( actionString ).matches() )
         {

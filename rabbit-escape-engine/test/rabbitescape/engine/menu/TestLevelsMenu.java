@@ -14,16 +14,20 @@ public class TestLevelsMenu
     {
         LevelsCompleted levelsCompleted = new HardCodedLevelsCompleted( 0 );
 
-        LevelsMenu menu = new LevelsMenu( "test2", levelsCompleted );
+        LevelsList levelsList
+            = new LevelsList( FakeLevelsList.levelSet( "test2", 3 ) );
+
+        LevelsMenu menu = new LevelsMenu(
+            "test2", levelsList, levelsCompleted );
 
         // Only the first level is enabled
         assertThat(
             menuItemsToStrings( menu.items ),
             equalTo(
                 new String[] {
-                    "Level 1 test2/lev1.rel",
-                    "Level 2 test2/lev2.rel (disabled)",
-                    "Level 3 test2/lev3.rel (disabled)"
+                    "LeVeL test2 1 test2/lev1.rel",
+                    "LeVeL test2 2 test2/lev2.rel (disabled)",
+                    "LeVeL test2 3 test2/lev3.rel (disabled)"
                 }
             )
         );
@@ -34,16 +38,20 @@ public class TestLevelsMenu
     {
         LevelsCompleted levelsCompleted = new HardCodedLevelsCompleted( 1 );
 
-        LevelsMenu menu = new LevelsMenu( "test2", levelsCompleted );
+        LevelsList levelsList
+            = new LevelsList( FakeLevelsList.levelSet( "test2", 3 ) );
+
+        LevelsMenu menu = new LevelsMenu(
+            "test2", levelsList, levelsCompleted );
 
         // The level after the one we completed is enabled
         assertThat(
             menuItemsToStrings( menu.items ),
             equalTo(
                 new String[] {
-                    "Level 1 test2/lev1.rel",
-                    "Level 2 test2/lev2.rel",
-                    "Level 3 test2/lev3.rel (disabled)"
+                    "LeVeL test2 1 test2/lev1.rel",
+                    "LeVeL test2 2 test2/lev2.rel",
+                    "LeVeL test2 3 test2/lev3.rel (disabled)"
                 }
             )
         );
@@ -54,16 +62,20 @@ public class TestLevelsMenu
     {
         LevelsCompleted levelsCompleted = new HardCodedLevelsCompleted( 2 );
 
-        LevelsMenu menu = new LevelsMenu( "test2", levelsCompleted );
+        LevelsList levelsList
+            = new LevelsList( FakeLevelsList.levelSet( "test2", 3 ) );
+
+        LevelsMenu menu = new LevelsMenu(
+            "test2", levelsList, levelsCompleted );
 
         // All levels are enabled because we've completed the penultimate one
         assertThat(
             menuItemsToStrings( menu.items ),
             equalTo(
                 new String[] {
-                    "Level 1 test2/lev1.rel",
-                    "Level 2 test2/lev2.rel",
-                    "Level 3 test2/lev3.rel"
+                    "LeVeL test2 1 test2/lev1.rel",
+                    "LeVeL test2 2 test2/lev2.rel",
+                    "LeVeL test2 3 test2/lev3.rel"
                 }
             )
         );
@@ -74,16 +86,20 @@ public class TestLevelsMenu
     {
         LevelsCompleted levelsCompleted = new HardCodedLevelsCompleted( 3 );
 
-        LevelsMenu menu = new LevelsMenu( "test2", levelsCompleted );
+        LevelsList levelsList
+            = new LevelsList( FakeLevelsList.levelSet( "test2", 3 ) );
+
+        LevelsMenu menu = new LevelsMenu(
+            "test2", levelsList, levelsCompleted );
 
         // All levels are enabled because we've completed them all
         assertThat(
             menuItemsToStrings( menu.items ),
             equalTo(
                 new String[] {
-                    "Level 1 test2/lev1.rel",
-                    "Level 2 test2/lev2.rel",
-                    "Level 3 test2/lev3.rel"
+                    "LeVeL test2 1 test2/lev1.rel",
+                    "LeVeL test2 2 test2/lev2.rel",
+                    "LeVeL test2 3 test2/lev3.rel"
                 }
             )
         );
@@ -95,16 +111,20 @@ public class TestLevelsMenu
         HardCodedLevelsCompleted levelsCompleted =
             new HardCodedLevelsCompleted( 1 );
 
-        LevelsMenu menu = new LevelsMenu( "test2", levelsCompleted );
+        LevelsList levelsList
+            = new LevelsList( FakeLevelsList.levelSet( "test2", 3 ) );
+
+        LevelsMenu menu = new LevelsMenu(
+            "test2", levelsList, levelsCompleted );
 
         // Sanity: level 3 is disabled
         assertThat(
             menuItemsToStrings( menu.items ),
             equalTo(
                 new String[] {
-                    "Level 1 test2/lev1.rel",
-                    "Level 2 test2/lev2.rel",
-                    "Level 3 test2/lev3.rel (disabled)"
+                    "LeVeL test2 1 test2/lev1.rel",
+                    "LeVeL test2 2 test2/lev2.rel",
+                    "LeVeL test2 3 test2/lev3.rel (disabled)"
                 }
             )
         );
@@ -118,9 +138,9 @@ public class TestLevelsMenu
             menuItemsToStrings( menu.items ),
             equalTo(
                 new String[] {
-                    "Level 1 test2/lev1.rel",
-                    "Level 2 test2/lev2.rel",
-                    "Level 3 test2/lev3.rel"
+                    "LeVeL test2 1 test2/lev1.rel",
+                    "LeVeL test2 2 test2/lev2.rel",
+                    "LeVeL test2 3 test2/lev3.rel"
                 }
             )
         );

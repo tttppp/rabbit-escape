@@ -1,8 +1,10 @@
 package rabbitescape.ui.text;
 
-import static rabbitescape.engine.config.ConfigKeys.*;
-
 import rabbitescape.engine.config.Config;
+import rabbitescape.engine.config.ConfigFile;
+import rabbitescape.engine.config.ConfigSchema;
+import rabbitescape.engine.config.RealConfigUpgrades;
+import rabbitescape.engine.config.StandardConfigSchema;
 import rabbitescape.engine.util.RealFileSystem;
 
 public class TextConfigSetup
@@ -13,14 +15,13 @@ public class TextConfigSetup
 
     public static Config createConfig()
     {
-        Config.Definition definition = new Config.Definition();
+        ConfigSchema definition = new ConfigSchema();
+        StandardConfigSchema.setSchema( definition );
 
-        definition.set(
-            CFG_LEVELS_COMPLETED,
-            "{}",
-            "Which level you have got to in each level set."
+        return new Config(
+            definition,
+            new ConfigFile( new RealFileSystem(), CONFIG_PATH ),
+            RealConfigUpgrades.realConfigUpgrades()
         );
-
-        return new Config( definition, new RealFileSystem(), CONFIG_PATH );
     }
 }

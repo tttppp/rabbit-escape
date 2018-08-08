@@ -6,11 +6,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +64,17 @@ public class Util
         if ( !assertion )
         {
             throw new AssertionError();
+        }
+    }
+
+    /**
+     * As reAssert( boolean assertion ), but with an explanation.
+     */
+    public static void reAssert( boolean assertion, String message )
+    {
+        if ( !assertion )
+        {
+            throw new AssertionError( message );
         }
     }
 
@@ -147,6 +162,32 @@ public class Util
         return ret;
     }
 
+    public static <T> List<T> filterIn( Iterable<T> i, Class<? extends T> filter )
+    {
+        ArrayList<T> filtered = new ArrayList<T>();
+        for ( T o: i)
+        {
+            if ( filter.isInstance( o ) )
+            {
+                filtered.add( o );
+            }
+        }
+        return filtered;
+    }
+
+    public static <T> List<T> filterOut( Iterable<T> i, Class<? extends T> filter )
+    {
+        ArrayList<T> filtered = new ArrayList<T>();
+        for ( T o: i)
+        {
+            if ( !filter.isInstance( o ) )
+            {
+                filtered.add( o );
+            }
+        }
+        return filtered;
+    }
+
     public static String[] stringArray( List<String> list )
     {
         return list.toArray( new String[list.size()] );
@@ -189,6 +230,12 @@ public class Util
         }
 
         return ret;
+    }
+
+    @SuppressWarnings( "unchecked" )
+    public static <T> Set<T> newSet( T... items )
+    {
+        return new HashSet<>( Arrays.asList( items ) );
     }
 
     public static Iterable<Character> asChars( final String str )
@@ -287,7 +334,7 @@ public class Util
         al.add( line ); // Don't forget the last line
         return al.toArray( new String[al.size()] );
     }
-    
+
     /**
      * As wrap(), but returns a single string with newlines.
      */
@@ -295,7 +342,12 @@ public class Util
     {
         return Util.join( "\n", wrap( s, maxChar ) );
     }
-    
+
+    public static String join( String glue, Object[] items )
+    {
+        return join( glue, Arrays.asList(items ));
+    }
+
     public static String join( String glue, String[] items )
     {
         return join( glue, Arrays.asList( items ) );
@@ -410,8 +462,12 @@ public class Util
         };
     }
 
-    public static <T> Iterable<T> chain(
-        final Iterable<? extends T> it1, final Iterable<? extends T> it2 )
+    /**
+     * This can be used to chain objects of different types (unlike concat). The returned
+     * Iterable will be of the first common superclass.
+     */
+    @SafeVarargs
+    public static <T> Iterable<T> chain( final Iterable<? extends T>... itArray )
     {
         return new Iterable<T>()
         {
@@ -420,26 +476,51 @@ public class Util
             {
                 class MyIt implements Iterator<T>
                 {
-                    private final Iterator<? extends T> i1;
-                    private final Iterator<? extends T> i2;
+                    /** Iterator of Iterators */
+                    Iterator<Iterator<? extends T>> iI;
 
-                    public MyIt(
-                        Iterator<? extends T> i1, Iterator<? extends T> i2 )
+                    /** The current sub-Iterator */
+                    Iterator<? extends T> i;
+
+                    public MyIt( Iterator<Iterator<? extends T>> iI )
                     {
-                        this.i1 = i1;
-                        this.i2 = i2;
+                        this.iI = iI;
+                        i = iI.next();
                     }
 
                     @Override
                     public boolean hasNext()
                     {
-                        return i1.hasNext() || i2.hasNext();
+                        if ( i.hasNext() )
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if ( iI.hasNext() )
+                            {
+                                i = iI.next();
+                                return this.hasNext();
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
                     }
 
                     @Override
                     public T next()
                     {
-                        return i1.hasNext() ? i1.next() : i2.next();
+                        if ( i.hasNext() )
+                        {
+                            return i.next();
+                        }
+                        else
+                        {
+                            i = iI.next();
+                            return this.next();
+                        }
                     }
 
                     @Override
@@ -447,9 +528,17 @@ public class Util
                     {
                         throw new UnsupportedOperationException();
                     }
+
+
                 }
 
-                return new MyIt( it1.iterator(), it2.iterator() );
+                List<Iterator<? extends T>> newIL = new ArrayList<Iterator<? extends T>>();
+                for ( Iterable<? extends T> it: itArray )
+                {
+                    newIL.add( it.iterator() );
+                }
+
+                return new MyIt(newIL.iterator());
             }
         };
     }
@@ -631,13 +720,42 @@ public class Util
         return streamLines( name, res );
     }
 
-    public static <T> T[] concat( T[] left, T[] right )
+    public static <T> T[] concat( T[] a, T[] b, T[] c, T[] d )
+    {
+        // Someone tell us how to make this better.
+
+        return list(
+            chain(
+                  list( a )
+                , list( b )
+                , list( c )
+                , list( d )
+            )
+        ).toArray( a );
+    }
+
+    public static <T> T[] concat( T[] a, T[] b, T[] c )
     {
         return list(
             chain(
-                Arrays.asList( left ), Arrays.asList( right )
+                  list( a )
+                , list( b )
+                , list( c )
             )
-        ).toArray( left );
+        ).toArray( a );
+    }
+
+    /**
+     * Use chain instead for arguments of different classes.
+     */
+    public static <T> T[] concat( T[] a, T[] b )
+    {
+        return list(
+            chain(
+                  list( a )
+                , list( b )
+            )
+        ).toArray( a );
     }
 
     public static <T> boolean equalsOrBothNull( T left, T right )
@@ -780,5 +898,56 @@ public class Util
                 };
             }
         };
+    }
+
+    /**
+     * @brief Replace all matches, but preserves the first capturing group.
+     *        Compare to String.replaceAll, which replaces the whole match.
+     * @param patternFlags The flags from java.util.regex.Pattern.
+     */
+    public static String regexRemovePreserveGroup( String s, String regex, int patternFlags )
+    {
+        Pattern p = Pattern.compile( regex, patternFlags );
+        Matcher dsMatcher = p.matcher( s );
+        StringBuffer sb = new StringBuffer();
+        while ( dsMatcher.find() )
+        {
+            dsMatcher.appendReplacement( sb, "$1" );
+        }
+        dsMatcher.appendTail( sb );
+
+        return sb.toString();
+    }
+
+    public static String regexRemovePreserveGroup( String s, String regex )
+    {
+        return regexRemovePreserveGroup( s, regex, 0 );
+    }
+
+    public static String regexReplace( String s, String regex, String replacement )
+    {
+        Pattern p = Pattern.compile( regex );
+        Matcher dsMatcher = p.matcher( s );
+        StringBuffer sb = new StringBuffer();
+        while ( dsMatcher.find() )
+        {
+            dsMatcher.appendReplacement( sb, replacement );
+        }
+        dsMatcher.appendTail( sb );
+
+        return sb.toString();
+    }
+
+    public static List<String> stringPropertyNames( Properties props )
+    {
+        List<String> ret = new ArrayList<String>();
+
+        Enumeration<?> names = props.propertyNames();
+        while( names.hasMoreElements() )
+        {
+            // Safe cast since propertyNames() always returns Strings.
+            ret.add( (String)names.nextElement() );
+        }
+        return ret;
     }
 }

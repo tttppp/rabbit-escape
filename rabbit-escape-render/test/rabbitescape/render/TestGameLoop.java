@@ -3,8 +3,13 @@ package rabbitescape.render;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
 
+import java.io.PrintStream;
+
 import org.junit.*;
 import rabbitescape.engine.*;
+import rabbitescape.engine.config.Config;
+import rabbitescape.engine.config.MemoryConfigStorage;
+import rabbitescape.engine.textworld.Comment;
 import rabbitescape.engine.textworld.TextWorldManip;
 import rabbitescape.render.gameloop.*;
 
@@ -116,12 +121,19 @@ public class TestGameLoop
         // 0 ms to draw each per frame
         ret.graphics = new DrawTracker( ret.input, ret.calls, msPerFrame );
 
+        World neverWonWorld = new NeverWonWorld( TextWorldManip.createEmptyWorld( 5, 5 ) );
         GeneralPhysics physics = new GeneralPhysics(
-            new NeverWonWorld( TextWorldManip.createEmptyWorld( 5, 5 ) ),
-            null
+            neverWonWorld,
+            null,
+            false
         );
 
-        ret.gameLoop = new GameLoop( ret.input, physics, ret.graphics );
+        Config config = new Config( null, new MemoryConfigStorage() );
+        PrintStream debugout = null;
+
+        ret.gameLoop = new GameLoop(
+            ret.input, physics, new WaterAnimation( neverWonWorld ), ret.graphics, config, debugout );
+
         ret.gameLoop.resetClock();
 
         return ret;
@@ -133,17 +145,16 @@ public class TestGameLoop
         {
             super(
                 w.size,
-                w.blocks,
+                w.blockTable.getListCopy(),
                 w.rabbits,
                 w.things,
+                w.getWaterContents(),
                 w.abilities,
                 w.name,
                 w.description,
                 w.author_name,
                 w.author_url,
-                w.hint1,
-                w.hint2,
-                w.hint3,
+                w.hints,
                 w.solutions,
                 w.num_rabbits,
                 w.num_to_save,
@@ -152,8 +163,11 @@ public class TestGameLoop
                 w.num_saved,
                 w.num_killed,
                 1,
+                w.getRabbitIndexCount(),
                 w.paused,
-                w.changes.statsListener
+                new Comment[] {},
+                w.changes.statsListener,
+                VoidMarkerStyle.Style.HIGHLIGHTER
             );
             assertThat( completionState(), equalTo( CompletionState.RUNNING ) );
         }

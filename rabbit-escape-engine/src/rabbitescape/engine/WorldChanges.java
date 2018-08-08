@@ -9,20 +9,10 @@ import rabbitescape.engine.World.NoBlockFound;
 import rabbitescape.engine.World.NoSuchAbilityInThisWorld;
 import rabbitescape.engine.World.NoneOfThisAbilityLeft;
 import rabbitescape.engine.World.UnableToAddToken;
+import rabbitescape.engine.util.Position;
 
 public class WorldChanges
 {
-    public static class Point
-    {
-        public final int x;
-        public final int y;
-
-        public Point( int x, int y )
-        {
-            this.x = x;
-            this.y = y;
-        }
-    }
 
     private final World world;
     public final WorldStatsListener statsListener;
@@ -32,9 +22,11 @@ public class WorldChanges
     private final List<Rabbit> rabbitsToSave  = new ArrayList<Rabbit>();
     private final List<Token>  tokensToAdd    = new ArrayList<Token>();
     public  final List<Token>  tokensToRemove = new ArrayList<Token>();
+    public  final List<Fire>   fireToRemove   = new ArrayList<Fire>();
     private final List<Block>  blocksToAdd    = new ArrayList<Block>();
     private final List<Block>  blocksToRemove = new ArrayList<Block>();
-    public final List<Point>   blocksJustRemoved = new ArrayList<Point>();
+    public final List<Position>   blocksJustRemoved = new ArrayList<Position>();
+    private final List<Position>  waterPointsToRecalculate = new ArrayList<>();
 
     private boolean explodeAll = false;
 
@@ -56,13 +48,19 @@ public class WorldChanges
         }
         world.rabbits.addAll( rabbitsToEnter );
         world.things.addAll( tokensToAdd );
-        world.blocks.addAll( blocksToAdd );
+        world.blockTable.addAll( blocksToAdd );
 
         // Remove dead/saved rabbits, used tokens, dug out blocks
         world.rabbits.removeAll( rabbitsToKill );
         world.rabbits.removeAll( rabbitsToSave );
         world.things.removeAll(  tokensToRemove );
-        world.blocks.removeAll(  blocksToRemove );
+        world.things.removeAll( fireToRemove );
+        world.blockTable.removeAll(  blocksToRemove );
+
+        for ( Position point : waterPointsToRecalculate )
+        {
+            world.recalculateWaterRegions( point );
+        }
 
         if ( rabbitsToSave.size() > 0 )
         {
@@ -74,8 +72,10 @@ public class WorldChanges
         rabbitsToSave.clear();
         tokensToAdd.clear();
         tokensToRemove.clear();
+        fireToRemove.clear();
         blocksToAdd.clear();
         blocksToRemove.clear();
+        waterPointsToRecalculate.clear();
 
         if ( explodeAll )
         {
@@ -106,6 +106,7 @@ public class WorldChanges
         tokensToRemove.clear();
         blocksToAdd.clear();
         blocksToRemove.clear();
+        waterPointsToRecalculate.clear();
     }
 
     private synchronized void revertEnterRabbits()
@@ -122,13 +123,22 @@ public class WorldChanges
 
     private synchronized void revertKillRabbits()
     {
-        world.num_killed -= rabbitsToKill.size();
+        for ( Rabbit rabbit : rabbitsToKill )
+        {
+            if ( rabbit.type == Rabbit.Type.RABBIT )
+            {
+                --world.num_killed;
+            }
+        }
         rabbitsToKill.clear();
     }
 
     public synchronized void killRabbit( Rabbit rabbit )
     {
-        ++world.num_killed;
+        if ( rabbit.type == Rabbit.Type.RABBIT )
+        {
+            ++world.num_killed;
+        }
         rabbitsToKill.add( rabbit );
     }
 
@@ -174,12 +184,12 @@ public class WorldChanges
         }
 
         Block block = world.getBlockAt( x, y );
-        if ( block != null && block.type == Block.Type.solid_flat )
+        if ( BehaviourTools.s_isFlat( block ) )
         {
             return;
         }
 
-        tokensToAdd.add( new Token( x, y, type ) );
+        tokensToAdd.add( new Token( x, y, type, world ) );
         world.abilities.put( type, numLeft - 1 );
     }
 
@@ -188,9 +198,15 @@ public class WorldChanges
         tokensToRemove.add( thing );
     }
 
+    public synchronized void removeFire( Fire thing )
+    {
+        fireToRemove.add( thing );
+    }
+
     public synchronized void addBlock( Block block )
     {
         blocksToAdd.add( block );
+        waterPointsToRecalculate.add( new Position( block.x, block.y ) );
     }
 
     public synchronized void removeBlockAt( int x, int y )
@@ -200,8 +216,9 @@ public class WorldChanges
         {
             throw new NoBlockFound( x, y );
         }
-        blocksJustRemoved.add( new Point( x, y ) );
+        blocksJustRemoved.add( new Position( x, y ) );
         blocksToRemove.add( block );
+        waterPointsToRecalculate.add( new Position( x, y ) );
     }
 
     public synchronized List<Thing> tokensAboutToAppear()

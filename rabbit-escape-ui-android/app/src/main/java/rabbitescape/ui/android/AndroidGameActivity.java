@@ -4,7 +4,6 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -25,10 +24,13 @@ import rabbitescape.engine.Token;
 import rabbitescape.engine.World;
 import rabbitescape.engine.WorldStatsListener;
 import rabbitescape.engine.err.RabbitEscapeException;
+import rabbitescape.engine.menu.ByNameConfigBasedLevelsCompleted;
 import rabbitescape.engine.menu.LevelsCompleted;
+import rabbitescape.engine.menu.LevelsList;
+import rabbitescape.engine.menu.LoadLevelsList;
+import rabbitescape.engine.menu.MenuDefinition;
 import rabbitescape.engine.textworld.TextWorldManip;
 import rabbitescape.engine.util.RealFileSystem;
-import rabbitescape.render.BitmapCache;
 
 import static android.text.TextUtils.split;
 import static rabbitescape.engine.i18n.Translation.t;
@@ -52,12 +54,14 @@ public class AndroidGameActivity extends RabbitEscapeActivity
 
     private Button muteButton;
     private Button pauseButton;
+    private Button speedButton;
     private LinearLayout topLayout;
 
     public GameSurfaceView gameSurface;
     private Token.Type[] abilities;
     private TextView worldStatsTextView;
-    private World world;
+    public World world;
+    public Game game;
 
     @Override
     protected void onCreate( Bundle savedInstanceState )
@@ -69,9 +73,27 @@ public class AndroidGameActivity extends RabbitEscapeActivity
         String levelFileName = intent.getStringExtra( INTENT_LEVEL );
         int    levelNum      = intent.getIntExtra( INTENT_LEVEL_NUMBER, 0 );
 
+        Resources resources = getResources();
+
         staticInit();
         world = loadWorld( levelFileName, savedInstanceState );
-        buildDynamicUi( getResources(), world, levelsDir, levelNum, savedInstanceState );
+
+        sound.setMusic( world.music );
+
+        LevelWinListener winListener = new MultiLevelWinListener(
+            new CompletedLevelWinListener( levelsDir, levelNum, levelsCompleted ),
+            new AndroidAlertWinListener( this )
+        );
+
+        game = new Game(
+            SingletonBitmapCache.instance( resources ),
+            getConfig(),
+            world,
+            winListener,
+            savedInstanceState
+        );
+
+        buildDynamicUi( resources, game, world, savedInstanceState );
 
         if ( savedInstanceState == null )
         {
@@ -81,8 +103,6 @@ public class AndroidGameActivity extends RabbitEscapeActivity
         {
             restoreFromState( savedInstanceState );
         }
-
-        sound.setMusic( world.music );
     }
 
     @Override
@@ -108,45 +128,38 @@ public class AndroidGameActivity extends RabbitEscapeActivity
 
     private void buildDynamicUi(
         Resources resources,
+        Game game,
         World world,
-        String levelsDir,
-        int levelNum,
         Bundle savedInstanceState
     )
     {
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics( metrics );
-
         createAbilities( world, resources );
         updatePauseButton( world.paused );
 
-        LevelWinListener winListener = new MultiLevelWinListener(
-            new CompletedLevelWinListener( levelsDir, levelNum, levelsCompleted ),
-            new AndroidAlertWinListener( this )
-        );
+        gameSurface = new GameSurfaceView( this, this, sound, game, world );
 
-        gameSurface = new GameSurfaceView(
-            this,
-            this,
-            sound,
-            createBitmapCache( resources ),
-            world,
-            winListener,
-            metrics.density,
-            savedInstanceState
-        );
+        if ( savedInstanceState != null )
+        {
+            // Get the "fast" state from savedInstanceState because we have no
+            // game yet - that won't be created until we have a surface.
+
+            updateSpeedButton(
+                savedInstanceState.getBoolean( AndroidGameLaunch.STATE_FAST_PRESSED, false ) );
+        }
 
         topLayout.addView( gameSurface );
     }
 
     private void staticInit()
     {
-        levelsCompleted = new AndroidPreferencesBasedLevelsCompleted( getPrefs() );
+        LevelsList levelsList = LoadLevelsList.load( MenuDefinition.allLevels );
+        levelsCompleted = new ByNameConfigBasedLevelsCompleted( getConfig(), levelsList );
 
         setContentView( R.layout.activity_android_game );
 
         muteButton = (Button)findViewById( R.id.muteButton );
         pauseButton = (Button)findViewById( R.id.pauseButton );
+        speedButton = (Button)findViewById( R.id.speedButton );
         topLayout = (LinearLayout)findViewById( R.id.topLayout );
         abilitiesGroup = (RadioGroup)findViewById( R.id.abilitiesGroup );
         worldStatsTextView = (TextView)findViewById( R.id.worldStats );
@@ -180,7 +193,7 @@ public class AndroidGameActivity extends RabbitEscapeActivity
                 @Override
                 public void onCheckedChanged( RadioGroup radioGroup, int buttonIndex )
                 {
-                    gameSurface.chooseAbility( abilities[buttonIndex] );
+                    game.gameLaunch.chosenAbility = abilities[buttonIndex];
 
                     for ( int i = 0; i < radioGroup.getChildCount(); i++ )
                     {
@@ -191,12 +204,6 @@ public class AndroidGameActivity extends RabbitEscapeActivity
                 }
             }
         );
-    }
-
-    private BitmapCache<AndroidBitmap> createBitmapCache( Resources resources )
-    {
-        return new BitmapCache<AndroidBitmap>(
-            new AndroidBitmapLoader( resources ), new AndroidBitmapScaler(), 500 );
     }
 
     @Override
@@ -225,11 +232,29 @@ public class AndroidGameActivity extends RabbitEscapeActivity
             null
         );
         pauseButton.invalidate();
+
+        // Show Overlay
+        game.gameLaunch.graphics.redraw();
+    }
+
+    public void onSpeedClicked( View view )
+    {
+        updateSpeedButton( gameSurface.toggleSpeed() );
+    }
+
+    private void updateSpeedButton( boolean fast )
+    {
+        int speedRes = fast ? R.drawable.menu_speedup_active : R.drawable.menu_speedup_inactive;
+
+        speedButton.setCompoundDrawablesWithIntrinsicBounds(
+            getResources().getDrawable( speedRes ), null, null, null );
+
+        speedButton.invalidate();
     }
 
     public void onExplodeAllClicked( View view )
     {
-        World world = gameSurface.game.gameLaunch.physics.world;
+        World world = game.gameLaunch.physics.world;
 
         switch ( world.completionState() )
         {
@@ -263,10 +288,7 @@ public class AndroidGameActivity extends RabbitEscapeActivity
 
         outState.putInt( STATE_CHECKED_ABILITY_INDEX, checkedAbilityIndex() );
 
-        if ( gameSurface != null )
-        {
-            gameSurface.onSaveInstanceState( outState );
-        }
+        game.gameLaunch.onSaveInstanceState( outState );
 
         // Mute state is stored in a preference, so no need to store it here.
     }
@@ -296,19 +318,22 @@ public class AndroidGameActivity extends RabbitEscapeActivity
     }
 
     @Override
-    public boolean onCreateOptionsMenu( Menu menu ) {
+    public boolean onCreateOptionsMenu( Menu menu )
+    {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate( R.menu.game, menu );
         return true;
     }
 
     @Override
-    public boolean onOptionsItemSelected( MenuItem item ) {
+    public boolean onOptionsItemSelected( MenuItem item )
+    {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if ( id == R.id.action_settings ) {
+        if ( id == R.id.action_settings )
+        {
             return true;
         }
         return super.onOptionsItemSelected( item );

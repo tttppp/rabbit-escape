@@ -10,6 +10,7 @@ import javax.swing.JFrame;
 
 import rabbitescape.engine.config.Config;
 import rabbitescape.engine.config.ConfigTools;
+import rabbitescape.render.androidlike.Sound;
 
 public class MainJFrame extends JFrame
 {
@@ -53,13 +54,45 @@ public class MainJFrame extends JFrame
                 uiConfig, CFG_GAME_WINDOW_HEIGHT, frame.getHeight() );
 
             uiConfig.save();
+
+            updateScreenIfPaused();
+        }
+
+        @Override
+        public void componentShown( ComponentEvent arg0 )
+        {
+            updateScreenIfPaused();
+        }
+
+        @Override
+        public void windowActivated( WindowEvent arg0 )
+        {
+            updateScreenIfPaused();
+        }
+
+        private void updateScreenIfPaused()
+        {
+            if ( null != swingGraphics )
+            {
+                if ( swingGraphics.world.paused )
+                {
+                    new Thread() {
+                        @Override
+                        public void run()
+                        {
+                            swingGraphics.redraw();
+                        }
+                    }.start();
+                }
+            }
         }
     }
 
     private final Config uiConfig;
-    private final SwingSound sound;
+    private final Sound sound;
+    private SwingGraphics swingGraphics = null;
 
-    public MainJFrame( Config uiConfig, SwingSound sound )
+    public MainJFrame( Config uiConfig, Sound sound )
     {
         this.uiConfig = uiConfig;
         this.sound = sound;
@@ -69,6 +102,21 @@ public class MainJFrame extends JFrame
         addComponentListener( listener );
 
         setBoundsFromConfig();
+
+        setIcon();
+    }
+
+    public void setGraphics( SwingGraphics swingGraphics )
+    {
+        this.swingGraphics = swingGraphics;
+    }
+
+    private void setIcon()
+    {
+        SwingBitmapLoader l = new SwingBitmapLoader();
+        int s = l.sizeFor( 128 );
+        SwingBitmap bmp = l.load( "ic_launcher", s );
+        this.setIconImage(bmp.image);
     }
 
     public void setBoundsFromConfig()

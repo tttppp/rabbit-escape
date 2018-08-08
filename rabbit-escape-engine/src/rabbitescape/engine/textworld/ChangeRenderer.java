@@ -37,6 +37,42 @@ public class ChangeRenderer
         {
             case NOTHING:
                 break;
+            case FIRE_A:
+            case FIRE_B:
+            case FIRE_C:
+            case FIRE_D:
+            case FIRE_A_RISE_RIGHT:
+            case FIRE_B_RISE_RIGHT:
+            case FIRE_C_RISE_RIGHT:
+            case FIRE_D_RISE_RIGHT:
+            case FIRE_A_RISE_LEFT:
+            case FIRE_B_RISE_LEFT:
+            case FIRE_C_RISE_LEFT:
+            case FIRE_D_RISE_LEFT:
+                break;
+            case FIRE_A_FALLING:
+            case FIRE_B_FALLING:
+            case FIRE_C_FALLING:
+            case FIRE_D_FALLING:
+            case FIRE_A_FALL_TO_RISE_RIGHT:
+            case FIRE_B_FALL_TO_RISE_RIGHT:
+            case FIRE_C_FALL_TO_RISE_RIGHT:
+            case FIRE_D_FALL_TO_RISE_RIGHT:
+            case FIRE_A_FALL_TO_RISE_LEFT:
+            case FIRE_B_FALL_TO_RISE_LEFT:
+            case FIRE_C_FALL_TO_RISE_LEFT:
+            case FIRE_D_FALL_TO_RISE_LEFT:
+                chars.set(  change.x, change.y + 1, 'g' );
+                break;
+            case FIRE_EXTINGUISHING:
+                break;
+            case PIPE:
+                chars.set( change.x, change.y, 'P' );
+                break;
+            case RABBIT_BURNING:
+            case RABBIT_BURNING_ON_SLOPE:
+                chars.set(  change.x, change.y, 'X' );
+                break;
             case RABBIT_WALKING_LEFT:
                 chars.set( change.x-1, change.y, '<' );
                 break;
@@ -109,6 +145,9 @@ public class ChangeRenderer
             case RABBIT_RISING_AND_LOWERING_LEFT:
                 chars.set( change.x - 1, change.y, 'm' );
                 break;
+            case RABBIT_BROLLYCHUTING:
+                chars.set( change.x, change.y + 1, ':' );
+                break;
             case RABBIT_FALLING:
                 chars.set( change.x, change.y + 1, 'f' );
                 chars.set( change.x, change.y + 2, 'f' );
@@ -138,11 +177,28 @@ public class ChangeRenderer
             case RABBIT_FALLING_1_ONTO_LOWER_LEFT:
                 chars.set( change.x, change.y + 1, 's' );
                 break;
+            case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_LEFT:
+            case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_RIGHT:
+                chars.set( change.x, change.y + 1, 'f' );
+                chars.set( change.x, change.y + 2, 'x' );
+                break;
+            case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_RIGHT_2:
+            case RABBIT_DYING_OF_FALLING_2_SLOPE_RISE_LEFT_2:
+                chars.set( change.x, change.y, 'X' );
+                break;
             case RABBIT_FALLING_1_ONTO_RISE_RIGHT:
                 chars.set( change.x, change.y + 1, 'h' );
                 break;
             case RABBIT_FALLING_1_ONTO_RISE_LEFT:
                 chars.set( change.x, change.y + 1, 'a' );
+                break;
+            case RABBIT_DYING_OF_FALLING_SLOPE_RISE_LEFT:
+            case RABBIT_DYING_OF_FALLING_SLOPE_RISE_RIGHT:
+                chars.set( change.x, change.y + 1, 'x' );
+                break;
+            case RABBIT_DYING_OF_FALLING_SLOPE_RISE_RIGHT_2:
+            case RABBIT_DYING_OF_FALLING_SLOPE_RISE_LEFT_2:
+                chars.set( change.x, change.y, 'y' );
                 break;
             case RABBIT_FALLING_1_TO_DEATH:
                 chars.set( change.x, change.y + 1, 'x' );
@@ -174,6 +230,12 @@ public class ChangeRenderer
             case RABBIT_BASHING_USELESSLY_LEFT:
                 chars.set( change.x - 1, change.y, 'J' );
                 break;
+            case RABBIT_BASHING_USELESSLY_RIGHT_UP:
+                chars.set( change.x + 1, change.y, 'I' );
+                break;
+            case RABBIT_BASHING_USELESSLY_LEFT_UP:
+                chars.set( change.x - 1, change.y, 'J' );
+                break;
             case RABBIT_CLIMBING_LEFT_START:
                 chars.set( change.x, change.y, 'T' );
                 break;
@@ -203,6 +265,9 @@ public class ChangeRenderer
             case RABBIT_DIGGING:
                 chars.set( change.x, change.y + 1, 'D' );
                 break;
+            case RABBIT_DIGGING_USELESSLY:
+                chars.set( change.x, change.y + 1, 'D' );
+                break;
             case RABBIT_DIGGING_ON_SLOPE:
                 chars.set( change.x, change.y, 'D' );
                 break;
@@ -210,25 +275,64 @@ public class ChangeRenderer
                 chars.set( change.x, change.y, 'D' );
                 break;
             case RABBIT_BLOCKING:
+            case RABBIT_BLOCKING_RISE_RIGHT:
+            case RABBIT_BLOCKING_RISE_LEFT:
                 chars.set( change.x, change.y, 'H' );
                 break;
             case RABBIT_EXPLODING:
                 chars.set( change.x, change.y, 'P' );
                 break;
+            case RABBIT_DROWNING:
+                chars.set( change.x, change.y, 'R' );
+                break;
+            case RABBIT_CRASHING:
+                chars.set( change.x, change.y, 'Z' );
+                break;
+            case RABBIT_OUT_OF_BOUNDS:
+                break;
+            case RABBIT_WAITING_LEFT:
+            case RABBIT_WAITING_RIGHT:
             case TOKEN_BASH_STILL:
+            case TOKEN_BASH_ON_SLOPE:
             case TOKEN_DIG_STILL:
+            case TOKEN_DIG_ON_SLOPE:
             case TOKEN_BRIDGE_STILL:
+            case TOKEN_BRIDGE_ON_SLOPE:
             case TOKEN_BLOCK_STILL:
+            case TOKEN_BLOCK_ON_SLOPE:
             case TOKEN_CLIMB_STILL:
+            case TOKEN_CLIMB_ON_SLOPE:
             case TOKEN_EXPLODE_STILL:
+            case TOKEN_EXPLODE_ON_SLOPE:
+            case TOKEN_BROLLY_STILL:
+            case TOKEN_BROLLY_ON_SLOPE:
                 break;
             case TOKEN_BASH_FALLING:
+            case TOKEN_BASH_FALL_TO_SLOPE:
             case TOKEN_DIG_FALLING:
+            case TOKEN_DIG_FALL_TO_SLOPE:
             case TOKEN_BRIDGE_FALLING:
+            case TOKEN_BRIDGE_FALL_TO_SLOPE:
             case TOKEN_BLOCK_FALLING:
+            case TOKEN_BLOCK_FALL_TO_SLOPE:
             case TOKEN_CLIMB_FALLING:
+            case TOKEN_CLIMB_FALL_TO_SLOPE:
             case TOKEN_EXPLODE_FALLING:
+            case TOKEN_EXPLODE_FALL_TO_SLOPE:
+            case TOKEN_BROLLY_FALLING:
+            case TOKEN_BROLLY_FALL_TO_SLOPE:
                 chars.set( change.x, change.y + 1, 'f' );
+                break;
+            case WATER_REGION:
+                chars.set( change.x, change.y, 'N' );
+                break;
+            case WATER_REGION_HALF:
+                chars.set( change.x, change.y, 'n' );
+                break;
+            case WATER_REGION_FALLING:
+                chars.set( change.x, change.y, 'n' );
+                break;
+            case WATER_REGION_EMPTY:
                 break;
             case ENTRANCE:
                 break;

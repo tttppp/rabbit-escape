@@ -2224,6 +2224,52 @@ public class TestWalking
 
         String[] resultLines = renderCompleteWorld( world, false );
 
-        assertThat( resultLines, equalTo( lines ) );
+        String[] expected = {
+            " # # # # ",
+           "#\\*/#)*(#",
+            "#########",
+            ":*=r{index:1}",
+            ":*=r{index:2}"
+        };
+
+        assertThat( resultLines, equalTo( expected ) );
+    }
+
+    @Test
+    public void No_levitation_after_slope_dug_out()
+    {
+        assertWorldEvolvesLike(
+            "#d#" + "\n" +
+            "#*#" + "\n" +
+            "###" + "\n" +
+            "###" + "\n" +
+            ":*=(rr",
+
+            "# #" + "\n" +
+            "#[#" + "\n" +
+            "###" + "\n" +
+            "###",
+
+            "# #" + "\n" +
+            "#?#" + "\n" +
+            "#D#" + "\n" +
+            "###",
+
+            "# #" + "\n" +
+            "#j#" + "\n" +
+            "#f#" + "\n" +
+            "###",
+
+            "# #" + "\n" +
+            "# #" + "\n" +
+            "#|#" + "\n" +
+            "#D#",
+
+            "# #" + "\n" +
+            "# #" + "\n" +
+            "#r#" + "\n" +
+            "#f#"
+        );
+
     }
 }

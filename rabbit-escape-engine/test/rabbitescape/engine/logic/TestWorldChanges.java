@@ -8,6 +8,7 @@ import org.junit.*;
 import rabbitescape.engine.Block;
 import rabbitescape.engine.Direction;
 import rabbitescape.engine.Rabbit;
+import rabbitescape.engine.Block.Shape;
 import rabbitescape.engine.Token;
 import rabbitescape.engine.World;
 import rabbitescape.engine.textworld.TextWorldManip;
@@ -103,37 +104,45 @@ public class TestWorldChanges
             ":description=Go and\nreturn",
             ":author_name=dave",
             ":author_url=",
-            ":hint1=",
-            ":hint2=",
-            ":hint3=",
+            ":hint.1=",
+            ":hint.2=",
+            ":hint.3=",
             ":num_rabbits=25",
             ":num_to_save=4",
             ":rabbit_delay=2",
             ":num_saved=5",
             ":num_killed=4",
             ":num_waiting=16",
+            ":rabbit_index_count=7",
             ":paused=false",
             ":bash=1",
             ":bridge=3",
             ":dig=2",
-            "#####",
-            "#i  #",
-            "# rr#",
-            "#####"
+            "######",
+            "#i   #",
+            "# ***#",
+            "######",
+            ":*=r{index:2}",
+            ":*=r{index:4}",
+            ":*=t{index:6}"
         };
 
         World world = TextWorldManip.createWorld( worldText );
         Token tok0 = world.getTokenAt( 1, 1 );
         Rabbit rabbit0 = world.rabbits.get( 0 );
         Rabbit rabbit1 = world.rabbits.get( 1 );
+        Rabbit rabbit2 = world.rabbits.get( 2 );
 
         // One of every type of change
-        world.changes.enterRabbit( new Rabbit( 1, 2, Direction.RIGHT ) );
+        world.changes.enterRabbit(
+            new Rabbit( 1, 2, Direction.RIGHT, Rabbit.Type.RABBIT ) );
+
         world.changes.killRabbit( rabbit0 );
         world.changes.saveRabbit( rabbit1 );
+        world.changes.killRabbit( rabbit2 );
         world.changes.addToken( 2, 1, Token.Type.bash );
         world.changes.removeToken( tok0 );
-        world.changes.addBlock( new Block( 1, 1, Block.Type.solid_flat, 0 ) );
+        world.changes.addBlock( new Block( 1, 1, Block.Material.EARTH, Shape.FLAT, 0 ) );
         world.changes.removeBlockAt( 0, 0 );
 
         // This is what we are testing - revert the changes

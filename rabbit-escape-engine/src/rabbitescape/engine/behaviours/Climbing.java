@@ -139,6 +139,11 @@ public class Climbing extends Behaviour
     {
         BehaviourTools t = new BehaviourTools( rabbit, world );
 
+        if( t.rabbitIsClimbing() )
+        { // Can't be both on a wall and on a slope.
+            rabbit.onSlope = false;
+        }
+
         switch ( state )
         {
             case RABBIT_CLIMBING_RIGHT_START:
@@ -162,11 +167,13 @@ public class Climbing extends Behaviour
             case RABBIT_CLIMBING_RIGHT_CONTINUE_1:
             case RABBIT_CLIMBING_LEFT_CONTINUE_1:
             {
+                abilityActive = true;
                 return true;
             }
             case RABBIT_CLIMBING_RIGHT_CONTINUE_2:
             case RABBIT_CLIMBING_LEFT_CONTINUE_2:
             {
+                abilityActive = true;
                 --rabbit.y;
                 return true;
             }

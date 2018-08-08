@@ -4,6 +4,10 @@ import static org.junit.Assert.fail;
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.CoreMatchers.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+
 import org.junit.Test;
 
 import rabbitescape.engine.Token;
@@ -41,6 +45,7 @@ public class TestSolutionRunner
                 equalTo(
                     "Solution failed: state was RUNNING but we expected LOST"
                     + " at command 1 of solution 3 in baz:\nz."
+                    + "\nTo see: ./runrabbit swing -l baz -s3"
                 )
             );
         }
@@ -73,6 +78,7 @@ public class TestSolutionRunner
                 equalTo(
                     "Solution failed: We expected to win, but the state was"
                     + " RUNNING at command 1 of solution 4 in X:\n."
+                    + "\nTo see: ./runrabbit swing -l X -s4"
                 )
             );
         }
@@ -103,6 +109,7 @@ public class TestSolutionRunner
                     "Solution failed: world has stopped (state: WON) but"
                     + " there are more solution commands"
                     + " at command 3 of solution 5 in <>:\n."
+                    + "\nTo see: ./runrabbit swing -l <> -s5"
                 )
             );
         }
@@ -136,6 +143,7 @@ public class TestSolutionRunner
                 equalTo(
                     "Solution failed: ability 'bash' was used when there"
                     + " were none left at command 4 of solution 6 in foo:\n."
+                    + "\nTo see: ./runrabbit swing -l foo -s6"
                 )
             );
         }
@@ -169,6 +177,7 @@ public class TestSolutionRunner
                     "Solution failed: ability 'bash' was used but this level"
                     + " does not provide it at command 2 of solution 7 in"
                     + " foo:\n."
+                    + "\nTo see: ./runrabbit swing -l foo -s7"
                 )
             );
         }
@@ -203,6 +212,7 @@ public class TestSolutionRunner
                     "Solution failed: placed a token at (10, 0) but the"
                     + " world is only 5x2 in size"
                     + " at command 2 of solution 8 in bar:\n."
+                    + "\nTo see: ./runrabbit swing -l bar -s8"
                 )
             );
         }
@@ -249,6 +259,7 @@ public class TestSolutionRunner
                     "Solution failed: tried to place a bash token at (3, 0) but"
                     + " a block was already there so it did not place"
                     + " at command 4 of solution 9 in bar:\ny\nx."
+                    + "\nTo see: ./runrabbit swing -l bar -s9"
                 )
             );
         }
@@ -282,9 +293,78 @@ public class TestSolutionRunner
                     "Solution failed: the level never finished, but"
                     + " there was an until:WON"
                     + " action at command 1 of solution 10 in qux:\nx\ny."
+                    + "\nTo see: ./runrabbit swing -l qux -s10"
                 )
             );
         }
+    }
+
+    @Test
+    public void Real_level_with_WON_at_end_works()
+    {
+        World world = TextWorldManip.createWorld(
+            ":num_rabbits=1",
+            ":num_to_save=1",
+            "Q    ",
+            "    O",
+            "#####"
+        );
+
+        boolean solved = SolutionRunner.runSolution(
+            SolutionParser.parse( "6;WON" ), world );
+
+        assertThat( solved, is( true ) );
+    }
+
+    @Test
+    public void Real_level_with_no_assert_but_we_won_works()
+    {
+        World world = TextWorldManip.createWorld(
+            ":num_rabbits=1",
+            ":num_to_save=1",
+            "Q    ",
+            "    O",
+            "#####"
+        );
+
+        boolean solved = SolutionRunner.runSolution(
+            SolutionParser.parse( "6" ), world );
+
+        assertThat( solved, is( true ) );
+    }
+
+    @Test
+    public void Real_level_with_LOST_at_end_works()
+    {
+        World world = TextWorldManip.createWorld(
+            ":num_rabbits=1",
+            ":num_to_save=1",
+            "Q    ",
+            "     ",
+            "#####"
+        );
+
+        boolean solved = SolutionRunner.runSolution(
+            SolutionParser.parse( "7;LOST" ), world );
+
+        assertThat( solved, is( false ) );
+    }
+
+    @Test
+    public void Real_level_with_no_assert_and_still_running_did_not_solve()
+    {
+        World world = TextWorldManip.createWorld(
+            ":num_rabbits=1",
+            ":num_to_save=1",
+            "Q    ",
+            "     ",
+            "#####"
+        );
+
+        boolean solved = SolutionRunner.runSolution(
+            SolutionParser.parse( "2;RUNNING" ), world );
+
+        assertThat( solved, is( false ) );
     }
 
     @Test
@@ -298,8 +378,10 @@ public class TestSolutionRunner
             "#####"
         );
 
-        SolutionRunner.runSolution(
+        boolean solved = SolutionRunner.runSolution(
             SolutionParser.parse( "until:WON" ), world );
+
+        assertThat( solved, is( true ) );
     }
 
     @Test
@@ -313,8 +395,101 @@ public class TestSolutionRunner
             "#####"
         );
 
-        SolutionRunner.runSolution(
+        boolean solved = SolutionRunner.runSolution(
             SolutionParser.parse( "until:LOST" ), world );
+
+        assertThat( solved, is( false ) );
+    }
+
+    @Test
+    public void Print_step() throws UnsupportedEncodingException // for the UTF8
+    {
+        World world = TextWorldManip.createWorld(
+            ":num_rabbits=0",
+            ":num_to_save=1",
+            ":solution.1=until:WON",
+            " d j ",
+            "#####",
+            "#O###",
+            "#####"
+        );
+
+        Solution solution = SolutionParser.parse( world.solutions[0] );
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream( baos );
+
+        SolutionRunner.runSolution( solution, world, ps, false );
+
+        String out = baos.toString("UTF8");
+
+        String exp =
+            "Waiting:0" + "\n" +
+            "  Saved:0" + "\n" +
+            "00  d j " + "\n" +
+            "01 #####" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:0" + "\n" +
+            "00  dj  " + "\n" +
+            "01 #####" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:0" + "\n" +
+            "00  j   " + "\n" +
+            "01 #####" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:0" + "\n" +
+            "00      " + "\n" +
+            "01 #j###" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:0" + "\n" +
+            "00      " + "\n" +
+            "01 #j###" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:0" + "\n" +
+            "00      " + "\n" +
+            "01 # ###" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:1" + "\n" +
+            "00      " + "\n" +
+            "01 # ###" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n" +
+            "Waiting:0" + "\n" +
+            "  Saved:1" + "\n" +
+            "00      " + "\n" +
+            "01 # ###" + "\n" +
+            "02 #O###" + "\n" +
+            "03 #####" + "\n" +
+            "   00000" + "\n" +
+            "   01234" + "\n";
+
+        assertThat( out, equalTo( exp ) );
     }
 
     // --

@@ -40,17 +40,21 @@ import rabbitescape.engine.MultiLevelWinListener;
 import rabbitescape.engine.config.Config;
 import rabbitescape.engine.config.ConfigKeys;
 import rabbitescape.engine.config.ConfigTools;
+import rabbitescape.engine.config.TapTimer;
 import rabbitescape.engine.err.RabbitEscapeException;
 import rabbitescape.engine.menu.AboutText;
-import rabbitescape.engine.menu.ConfigBasedLevelsCompleted;
+import rabbitescape.engine.menu.ByNameConfigBasedLevelsCompleted;
 import rabbitescape.engine.menu.LevelMenuItem;
 import rabbitescape.engine.menu.LevelsCompleted;
+import rabbitescape.engine.menu.LevelsList;
+import rabbitescape.engine.menu.LoadLevelsList;
 import rabbitescape.engine.menu.Menu;
 import rabbitescape.engine.menu.MenuDefinition;
 import rabbitescape.engine.menu.MenuItem;
 import rabbitescape.engine.util.RealFileSystem;
 import rabbitescape.engine.util.Util.IdxObj;
 import rabbitescape.render.BitmapCache;
+import rabbitescape.render.androidlike.Sound;
 
 public class MenuUi
 {
@@ -143,7 +147,7 @@ public class MenuUi
     private final Stack<Menu> stack;
     private final Config uiConfig;
     private final MainJFrame frame;
-    private final SwingSound sound;
+    private final Sound sound;
 
     private final JPanel menuPanel;
     private final LevelsCompleted levelsCompleted;
@@ -156,7 +160,7 @@ public class MenuUi
         BitmapCache<SwingBitmap> bitmapCache,
         Config uiConfig,
         MainJFrame frame,
-        SwingSound sound
+        Sound sound
     )
     {
         this.fs = fs;
@@ -168,12 +172,15 @@ public class MenuUi
         this.frame = frame;
         this.sound = sound;
         this.menuPanel = new JPanel( new GridBagLayout() );
-        this.levelsCompleted = new ConfigBasedLevelsCompleted( uiConfig );
+
+        LevelsList levelsList = LoadLevelsList.load(
+            MenuDefinition.allLevels );
+
+        this.levelsCompleted = new ByNameConfigBasedLevelsCompleted(
+            uiConfig, levelsList );
 
         stack.push(
-            MenuDefinition.mainMenu(
-                new ConfigBasedLevelsCompleted( uiConfig )
-            )
+            MenuDefinition.mainMenu( this.levelsCompleted, levelsList, true )
         );
 
         init();
@@ -223,7 +230,7 @@ public class MenuUi
 
         menuPanel.removeAll();
 
-        Dimension buttonSize = new Dimension( 200, 40 );
+        Dimension buttonSize = new Dimension( 300, 40 );
 
         JLabel label = new JLabel( t( menu.intro ) );
         label.setHorizontalAlignment( SwingConstants.CENTER );
@@ -233,13 +240,17 @@ public class MenuUi
 
         for ( IdxObj<MenuItem> item : enumerate1( menu.items ) )
         {
+            if ( item.object.hidden && !TapTimer.matched )
+            {
+                continue;
+            }
             JButton button = new JButton(
                 t( item.object.name, item.object.nameParams ) );
 
             button.setBackground( buttonColor );
             button.addActionListener( new ButtonListener( item.object ) );
             button.setVisible( true );
-            button.setEnabled( item.object.enabled );
+            button.setEnabled( item.object.enabled || TapTimer.matched );
             button.setPreferredSize( buttonSize );
             menuPanel.add( button, constraints( item.index ) );
         }
@@ -375,7 +386,9 @@ public class MenuUi
                     uiConfig,
                     frame,
                     sound,
-                    MenuUi.this
+                    MenuUi.this,
+                    SwingGameLaunch.NOT_DEMO_MODE,
+                    false
                 ).launchGame(
                     new String[] { filename },
                     levelWinListener

@@ -3,17 +3,12 @@ Time moves upwards.
 Later
 -----
 
-- Metal (undiggable) blocks
-- graphics:mine?
-- action:mine?
 - Graphics in level design
 - Level editor
 - Fail to bridge action when bridge placed somewhere you can't bridge
-- Animate falling onto slopes
 - Separate rabbits who find themselves on top of each other.
 - More colourful?
 - Fix many things not animating nicely
-- Speed up time button
 - graphics:float
 - action:float
 - Fix Android bug where winning alert disappears when you rotate the screen
@@ -30,7 +25,6 @@ Later
 - Remove Settings button (Android)
 - Tell you what level you are playing
 - Victory screen
-- Automated tests that levels run OK and can be solved
 - favicon for web site
 - Save up zoom events and do them between frames
 - Consider whether http://developer.android.com/training/gestures/detector.html
@@ -39,42 +33,54 @@ Later
 - climbing from an upward slope glitches. Also probably a downward slope.
 - walking from flat to downward slope starts off with rabbit about 2 pixels too high
 - after climbing and hitting head sometimes the rabbit walks on air
-- medium 7 can be solved because of a bug where you can walk through a slope that should hit your head i.e.
-    /
-    r/#
-    ###
-is traversable but should not be.
-- show level name and number in game
 - show level name in menu
 - front menu with quick play button that jumps to what you are stuck on
 - victory message (and sound?) when you complete a level set
 - jump to next level or retry when finished level
-- walkthrough solutions for each level, tested with the build
-- fix text ui and allow recording walkthroughs in it
-- record walkthroughs in main ui
 - js port (and level editor)
 - when continuing to bridge rabbit floats
 - when a rabbit is starting to climb it can be made to bridge
 - when a rabbit is starting to bridge it can be made to bash
-- when I drop a token near the end of a bridge that is being built it should not float to the ground.
-- tokens resting on slopes should be higher
 - after climbing up to downward slope we fall onto it which looks weird
       \
     rc#
     ###
 - when I explode a blocker it jerks to the left
-- when a bridge is almost built it should behave like a bridge
 - Use cant_place_token sound effect when you cannot place a token
 - Sounds for winning an losing a level and winning a level set
-- Speed up button
+
+Release 0.9
+-----------
+- ~~Metal (undiggable) blocks~~
+- ~~Fire~~
+- ~~tokens resting on slopes should be higher~~
+
+Release 0.8
+-----------
+- ~~Speed up button~~
+- ~~Animate falling onto slopes~~
+- ~~show level name and number in game~~
+- ~~record walkthroughs in main ui~~
+- ~~when a bridge is almost built it should behave like a bridge~~
+
+Release 0.7
+-----------
+- ~~20 new levels: "arcade"~~
+- ~~walkthrough solutions for each level, tested with the build~~
+- ~~Automated tests that levels run OK and can be solved~~
 
 Release 0.6
 -----------
 
-- 20 new levels: "outdoor"
-- New music for the outdoor levels
-- Ability to play custom levels
+- ~~when I drop a token near the end of a bridge that is being built it should not float to the ground.~~
+- ~~medium 7 can be solved because of a bug where you can walk through a slope that should hit your head~~
+- ~~fix text ui and allow recording walkthroughs in it~~
+- ~~20 new levels: "outdoor"~~
+- ~~New music for the outdoor levels~~
+- ~~Ability to play custom levels~~
 - ~~Author name and url in level definitions~~
+- ~~Docs on making levels~~
+- ~~Docs on installing~~
 
 Release 0.5
 -----------
@@ -154,8 +160,6 @@ Release 0.1 (Playable)
 ----------------------
 
 - Don''t scroll to the top of the list after you''ve won a level
-- Docs on making levels
-- Docs on installing
 - ~~Pencil-style blocks~~
 - ~~Squares shown in the background~~
 - ~~Centre the game canvas when smaller than the window~~

@@ -7,11 +7,15 @@ import java.util.List;
 
 import rabbitescape.engine.Entrance;
 import rabbitescape.engine.Exit;
+import rabbitescape.engine.Fire;
 import rabbitescape.engine.IgnoreWorldStatsListener;
+import rabbitescape.engine.Pipe;
 import rabbitescape.engine.Rabbit;
 import rabbitescape.engine.Thing;
 import rabbitescape.engine.Token;
+import rabbitescape.engine.VoidMarkerStyle;
 import rabbitescape.engine.World;
+import rabbitescape.engine.textworld.Comment;
 
 /**
  * A completely sandboxed game that can be edited and have solutions run against
@@ -39,17 +43,16 @@ public class SandboxGame
         List<Rabbit> clonedRabbits = makeClonedRabbits( world.rabbits );
         List<Thing> clonedThings = makeClonedThings( world.things );
         this.world = new World( world.size,
-            new ArrayList<>( world.blocks ),
+            world.blockTable.getListCopy(),
             clonedRabbits,
             clonedThings,
+            world.getWaterContents(),
             new HashMap<>( world.abilities ),
             world.name,
             world.description,
             world.author_name,
             world.author_url,
-            world.hint1,
-            world.hint2,
-            world.hint3,
+            Arrays.copyOf( world.hints, world.hints.length ),
             Arrays.copyOf( world.solutions, world.solutions.length ),
             world.num_rabbits,
             world.num_to_save,
@@ -58,8 +61,12 @@ public class SandboxGame
             world.num_saved,
             world.num_killed,
             world.num_waiting,
+            world.getRabbitIndexCount(),
             world.paused,
-            new IgnoreWorldStatsListener() );
+            new Comment[] {},
+            new IgnoreWorldStatsListener(),
+            VoidMarkerStyle.Style.HIGHLIGHTER
+        );
     }
 
     /**
@@ -91,6 +98,16 @@ public class SandboxGame
             {
                 Token token = (Token)thing;
                 clonedThings.add( new Token( token.x, token.y, token.type ) );
+            }
+            else if ( thing instanceof Fire )
+            {
+                Fire fire = (Fire)thing;
+                clonedThings.add( new Fire( fire.x, fire.y, fire.variant ) );
+            }
+            else if ( thing instanceof Pipe )
+            {
+                Pipe pipe = (Pipe)thing;
+                clonedThings.add( new Pipe( pipe.x, pipe.y ) );
             }
             else
             {
@@ -129,7 +146,7 @@ public class SandboxGame
      */
     private Rabbit cloneRabbit( Rabbit rabbit )
     {
-        return new Rabbit( rabbit.x, rabbit.y, rabbit.dir );
+        return new Rabbit( rabbit.x, rabbit.y, rabbit.dir, rabbit.type );
     }
 
     /**

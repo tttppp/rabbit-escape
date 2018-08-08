@@ -20,6 +20,7 @@ public class SolutionInterpreter
     private CompletionState untilState;
     private SolutionCommand command;
     private int untilCount;
+    public boolean emptySteps = false;
 
     /**
      * appendWon defaults to true if you omit it.
@@ -46,8 +47,19 @@ public class SolutionInterpreter
         this.untilCount = -1;
     }
 
+    public static SolutionInterpreter getNothingPlaying()
+    {
+        SolutionInterpreter nothingPlaying = new SolutionInterpreter( SolutionParser.parse( "1" ) );
+        nothingPlaying.emptySteps = true;
+        return nothingPlaying;
+    }
+
     public SolutionTimeStep next( CompletionState worldState )
     {
+        if ( emptySteps )
+        {
+            return new SolutionTimeStep( ++commandIndex, new TimeStepAction[] {} );
+        }
         if ( wait != null )
         {
             SolutionTimeStep ret = wait.next();

@@ -10,11 +10,14 @@ import rabbitescape.engine.CompletedLevelWinListener;
 import rabbitescape.engine.LevelWinListener;
 import rabbitescape.engine.MultiLevelWinListener;
 import rabbitescape.engine.config.Config;
+import rabbitescape.engine.config.TapTimer;
 import rabbitescape.engine.err.RabbitEscapeException;
 import rabbitescape.engine.menu.AboutText;
-import rabbitescape.engine.menu.ConfigBasedLevelsCompleted;
+import rabbitescape.engine.menu.ByNameConfigBasedLevelsCompleted;
 import rabbitescape.engine.menu.LevelMenuItem;
 import rabbitescape.engine.menu.LevelsCompleted;
+import rabbitescape.engine.menu.LevelsList;
+import rabbitescape.engine.menu.LoadLevelsList;
 import rabbitescape.engine.menu.Menu;
 import rabbitescape.engine.menu.MenuDefinition;
 import rabbitescape.engine.menu.MenuItem;
@@ -49,6 +52,7 @@ public class TextMenu
 
     private final FileSystem fs;
     private final Terminal terminal;
+    private final LevelsList levelsList;
     private final LevelsCompleted levelsCompleted;
     private final Stack<Menu> stack = new Stack<Menu>();
 
@@ -56,12 +60,15 @@ public class TextMenu
     {
         this.fs = fs;
         this.terminal = terminal;
-        this.levelsCompleted = new ConfigBasedLevelsCompleted( config );
+        this.levelsList = LoadLevelsList.load( MenuDefinition.allLevels );
+        this.levelsCompleted = new ByNameConfigBasedLevelsCompleted(
+            config, levelsList );
     }
 
     public void run()
     {
-        Menu menu = MenuDefinition.mainMenu( levelsCompleted );
+        Menu menu = MenuDefinition.mainMenu(
+            levelsCompleted, levelsList, true );
 
         stack.clear();
         stack.push( menu );
@@ -115,7 +122,7 @@ public class TextMenu
 
         new TextSingleGameEntryPoint( fs, terminal.out, terminal.locale )
             .launchGame(
-                new String[] { levelItem.fileName, "--interactive" },
+                new String[] { levelItem.fileName },
                 winListeners( levelItem )
             );
     }
@@ -155,7 +162,7 @@ public class TextMenu
             else
             {
                 MenuItem ret = menu.items[chosenNum];
-                if ( ret.enabled )
+                if ( ret.enabled || TapTimer.matched )
                 {
                     return ret;
                 }
@@ -209,6 +216,10 @@ public class TextMenu
 
         for ( IdxObj<MenuItem> item : enumerate1( menu.items ) )
         {
+            if ( item.object.hidden && !TapTimer.matched )
+            {
+                continue;
+            }
             ret.append( renderItem( item.index, item.object ) );
         }
 
@@ -217,7 +228,7 @@ public class TextMenu
 
     private static String renderItem( int i, MenuItem item )
     {
-        if ( item.enabled )
+        if ( item.enabled || TapTimer.matched )
         {
             return t(
                 "${num}. ${item}\n",

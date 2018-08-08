@@ -1,6 +1,7 @@
 package rabbitescape.engine.textworld;
 
-import static rabbitescape.engine.util.Util.*;
+import static rabbitescape.engine.util.Util.concat;
+import static rabbitescape.engine.util.Util.enumerate1;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,39 +17,45 @@ import rabbitescape.engine.IgnoreWorldStatsListener;
 import rabbitescape.engine.Rabbit;
 import rabbitescape.engine.Thing;
 import rabbitescape.engine.Token;
+import rabbitescape.engine.VoidMarkerStyle;
 import rabbitescape.engine.World;
 import rabbitescape.engine.WorldStatsListener;
 import rabbitescape.engine.util.Dimension;
-import rabbitescape.engine.util.VariantGenerator;
+import rabbitescape.engine.util.Position;
+import rabbitescape.engine.util.Util;
+import rabbitescape.engine.util.Util.Function;
 import rabbitescape.engine.util.Util.IdxObj;
+import rabbitescape.engine.util.VariantGenerator;
 
 public class TextWorldManip
 {
-    private static final String name                 = "name";
+    public  static final String name                 = "name";
     private static final String description          = "description";
     private static final String author_name          = "author_name";
     private static final String author_url           = "author_url";
-    private static final String hint1                = "hint1";
-    private static final String hint2                = "hint2";
-    private static final String hint3                = "hint3";
-    private static final String solution             = "solution";
+    public  static final String hint                 = "hint";
+    public  static final String solution             = "solution";
     private static final String num_rabbits          = "num_rabbits";
     private static final String num_to_save          = "num_to_save";
     private static final String rabbit_delay         = "rabbit_delay";
     private static final String music                = "music";
+    public  static final String void_marker_style    = "void_marker_style";
     private static final String num_saved            = "num_saved";
     private static final String num_killed           = "num_killed";
     private static final String num_waiting          = "num_waiting";
+    private static final String rabbit_index_count   = "rabbit_index_count";
     private static final String intro                = "intro";
     private static final String paused               = "paused";
     private static final String ready_to_explode_all = "ready_to_explode_all";
+    public  static final String water_definition     = "n";
 
     public static final List<String> META_INTS = Arrays.asList(
         num_rabbits,
         num_to_save,
         num_saved,
         num_killed,
-        num_waiting
+        num_waiting,
+        rabbit_index_count
     );
 
     public static final List<String> META_INT_ARRAYS = Arrays.asList(
@@ -60,14 +67,13 @@ public class TextWorldManip
         description,
         author_name,
         author_url,
-        hint1,
-        hint2,
-        hint3,
-        music
+        music,
+        void_marker_style
     );
 
     public static final List<String> META_STRING_ARRAYS_BY_KEY = Arrays.asList(
-        solution
+        solution,
+        hint
     );
 
     public static final List<String> META_BOOLS = Arrays.asList(
@@ -101,6 +107,9 @@ public class TextWorldManip
         return createWorldWithName( "", statsListener, lines );
     }
 
+    /**
+     * @param encode if true, create a world with obfuscated hints and solutions
+     */
     public static World createWorldWithName(
         String nameIfNoneSupplied,
         WorldStatsListener statsListener,
@@ -110,6 +119,7 @@ public class TextWorldManip
         List<Block> blocks = new ArrayList<>();
         List<Rabbit> rabbits = new ArrayList<>();
         List<Thing> things = new ArrayList<>();
+        Map<Position, Integer> waterAmounts = new HashMap<>();
         Map<Token.Type, Integer> abilities = new HashMap<>();
 
         int variantSeed = 0; // TODO: world property for the seed?
@@ -118,6 +128,7 @@ public class TextWorldManip
             blocks,
             rabbits,
             things,
+            waterAmounts,
             abilities,
             lines,
             new VariantGenerator( variantSeed )
@@ -126,8 +137,10 @@ public class TextWorldManip
         int num_rabs = processor.metaInt( num_rabbits, 10 );
 
         World world = createWorldFromLineProcessor(
-            nameIfNoneSupplied, statsListener, blocks, rabbits, things,
+            nameIfNoneSupplied, statsListener, blocks, rabbits, things, waterAmounts,
             abilities, processor, num_rabs );
+
+        world.countRabbitsForIndex();
 
         return world;
     }
@@ -138,23 +151,24 @@ public class TextWorldManip
         List<Block> blocks,
         List<Rabbit> rabbits,
         List<Thing> things,
+        Map<Position, Integer> waterAmounts,
         Map<Token.Type, Integer> abilities,
         LineProcessor processor,
         int num_rabs )
     {
+
         return new World(
             processor.size(),
             blocks,
             rabbits,
             things,
+            waterAmounts,
             abilities,
             processor.metaString( name, nameIfNoneSupplied ),
             processor.metaString( description, "" ),
             processor.metaString( author_name, "" ),
             processor.metaString( author_url, "" ),
-            processor.metaString( hint1, "" ),
-            processor.metaString( hint2, "" ),
-            processor.metaString( hint3, "" ),
+            processor.metaStringArrayByKey( hint, new String[] {} ),
             processor.metaStringArrayByKey( solution, new String[] {} ),
             num_rabs,
             processor.metaInt( num_to_save,  1 ),
@@ -163,8 +177,11 @@ public class TextWorldManip
             processor.metaInt( num_saved, 0 ),
             processor.metaInt( num_killed, 0 ),
             processor.metaInt( num_waiting, num_rabs ),
+            processor.metaInt( rabbit_index_count, 0 ),
             processor.metaBool( paused, false ),
-            statsListener
+            processor.getComments(),
+            statsListener,
+            processor.generateVoidMarkerStyle()
         );
     }
 
@@ -175,24 +192,26 @@ public class TextWorldManip
             new ArrayList<Block>(),
             new ArrayList<Rabbit>(),
             new ArrayList<Thing>(),
+            new HashMap<Position, Integer>(),
             new HashMap<Token.Type, Integer>(),
-            "Empty World", //name
-            "",            //description
-            "",            //author_name
-            "",            //author_url
-            "",            //hint1
-            "",            //hint2
-            "",            //hint3
+            "Empty World",   //name
+            "",              //description
+            "",              //author_name
+            "",              //author_url
+            new String[] {}, //hints
             new String[] {}, //solutions
-            0,
-            1,
-            new int[]{4},
-            null,
-            0,
-            0,
-            0,
+            0,               //num_rabs
+            1,               //num_to_save
+            new int[]{4},    //rabbit_delay
+            null,            //music
+            0,               //num_saved
+            0,               //num_killed
+            0,               //num_waiting
+            0,               //rabbit_index_count
             false,
-            new IgnoreWorldStatsListener()
+            new Comment[] {},
+            new IgnoreWorldStatsListener(),
+            VoidMarkerStyle.Style.HIGHLIGHTER
         );
     }
 
@@ -201,7 +220,7 @@ public class TextWorldManip
     {
         Chars chars = new Chars( world, false );
 
-        BlockRenderer.render( chars, world.blocks );
+        BlockRenderer.render( chars, world.blockTable );
         RabbitRenderer.render( chars, world.rabbits );
         ThingRenderer.render( chars, world.things );
 
@@ -215,17 +234,38 @@ public class TextWorldManip
 
     public static String[] renderCompleteWorld( World world, boolean meta )
     {
+        return renderCompleteWorld( world, meta, true );
+    }
+
+    /**
+     * @param world        The World to render.
+     * @param meta         If true the metadata is included.
+     * @param runtimeMeta  If true the runtime metadata is included.
+     * @return             The lines as an array.
+     */
+    public static String[] renderCompleteWorld(
+        World world, boolean meta, boolean runtimeMeta )
+    {
         Chars chars = new Chars( world, true );
 
-        BlockRenderer.render( chars, world.blocks );
+        BlockRenderer.render( chars, world.blockTable );
+        WaterRenderer.render( chars, world.waterTable );
         RabbitRenderer.render( chars, world.rabbits );
         ThingRenderer.render( chars, world.things );
 
-        String[] things = charsToComplete( chars );
+        String[] things = charsToComplete( chars, world.comments );
 
         if ( meta )
         {
-            return concat( metaLines( world ), things );
+            List<String> worldComments = new ArrayList<String>();
+            addMeta( worldComments, Comment.WORLD_ASCII_ART, null, world.comments);
+            List<String> endComments = new ArrayList<String>();
+            // Comments after all substantive meta.
+            addMeta( endComments, null, null, world.comments);
+            return concat( metaLines( world, runtimeMeta ),
+                           worldComments.toArray( new String[]{} ),
+                           things,
+                           endComments.toArray( new String[]{}) );
         }
         else
         {
@@ -233,37 +273,87 @@ public class TextWorldManip
         }
     }
 
-    private static String[] metaLines( World world )
+    private static Function<String, String> escapeBackslashes =
+        new Function<String, String>()
+    {
+        @Override
+        public String apply( String t )
+        {
+            return t.replaceAll( "\\\\", "\\\\\\\\" );
+        }
+    };
+
+    public static String renderWorldForTest( World world )
+    {
+        String[] lines = Util.stringArray( Util.map(
+            escapeBackslashes, renderWorld( world, true, false ) ) );
+
+        String glue = "\" + \"\\n\" +\n            \"";
+        return "            \"" + Util.join( glue, lines ) + "\",\n";
+    }
+
+    /**
+     * Adds a line of metadata to the supplied List. If there are any comments
+     * for this key comment lines will be added first.
+     * @param   value may be null, in which case only comments will be considered.
+     */
+    private static void addMeta( List<String> lines,
+                                 String key, String value,
+                                 Comment[] comments )
+    {
+        for( Comment c: comments)
+        {
+            if( c.isFollowedBy( key ) )
+            {
+                lines.add( c.text );
+            }
+        }
+        if ( null == value )
+        { // We were only here to consider adding comments.
+            return;
+        }
+        else
+        {
+            lines.add( ":" + key + "=" + value );
+        }
+    }
+
+    private static String[] metaLines( World world, boolean runtimeMeta )
     {
         List<String> ret = new ArrayList<String>();
 
-        ret.add( metaLine( name,         world.name ) );
-        ret.add( metaLine( description,  world.description ) );
-        ret.add( metaLine( author_name,  world.author_name ) );
-        ret.add( metaLine( author_url,   world.author_url ) );
-        addMetaKeyArrayLines( ret, solution, world.solutions );
-        ret.add( metaLine( hint1,        world.hint1 ) );
-        ret.add( metaLine( hint2,        world.hint2 ) );
-        ret.add( metaLine( hint3,        world.hint3 ) );
-        ret.add( metaLine( num_rabbits,  world.num_rabbits ) );
-        ret.add( metaLine( num_to_save,  world.num_to_save ) );
-        ret.add( metaLine( rabbit_delay, world.rabbit_delay ) );
-        ret.add( metaLine( num_saved,    world.num_saved ) );
-        ret.add( metaLine( num_killed,   world.num_killed ) );
-        ret.add( metaLine( num_waiting,  world.num_waiting ) );
-        ret.add( metaLine( paused,       world.paused ) );
+        addMeta( ret, name,        world.name,        world.comments );
+        addMeta( ret, description, world.description, world.comments );
+        addMeta( ret, author_name, world.author_name, world.comments );
+        addMeta( ret, author_url,  world.author_url,  world.comments );
 
+        addMetaKeyArrayLines( ret, hint, world.hints, world );
+        addMetaKeyArrayLines( ret, solution, world.solutions, world );
+
+        addMeta( ret, num_rabbits,  Integer.toString( world.num_rabbits ), world.comments );
+        addMeta( ret, num_to_save,  Integer.toString( world.num_to_save ), world.comments );
+        addMeta( ret, rabbit_delay, renderIntArray( world.rabbit_delay ), world.comments );
+
+        if ( runtimeMeta )
+        {
+            addMeta( ret, num_saved,   Integer.toString( world.num_saved ),   world.comments );
+            addMeta( ret, num_killed,  Integer.toString( world.num_killed ),  world.comments );
+            addMeta( ret, num_waiting, Integer.toString( world.num_waiting ), world.comments );
+            addMeta( ret, rabbit_index_count, Integer.toString( world.getRabbitIndexCount() ), world.comments );
+            addMeta( ret, paused,      Boolean.toString( world.paused ),      world.comments );
+        }
         abilityMetaLines( world, ret );
 
         return ret.toArray( new String[ret.size()] );
     }
 
     private static void addMetaKeyArrayLines(
-        List<String> ret, String name, String[] values )
+        List<String> ret, String name, String[] values, World w )
     {
         for ( IdxObj<String> value : enumerate1( values ) )
         {
-            ret.add( metaLine( name + "." + value.index, value.object ) );
+            String keyWithIndex = name + "." + value.index;
+            addMeta( ret, keyWithIndex, value.object, w.comments );
         }
     }
 
@@ -284,33 +374,18 @@ public class TextWorldManip
 
         for ( Token.Type t : abilityNames )
         {
-            ret.add( metaLine( t.name(), world.abilities.get( t ) ) );
+            addMeta( ret, t.name(), Integer.toString( world.abilities.get( t ) ), world.comments );
         }
     }
 
-    private static String metaLine( String name, int value )
-    {
-        return metaLine( name, Integer.toString( value ) );
-    }
-
-    private static String metaLine( String name, int[] value )
+    private static String renderIntArray( int[] value )
     {
         String ret = Integer.toString( value[0] );
         for ( int i = 1; i< value.length; i++)
         {
             ret = ret + "," + Integer.toString( value[i] ) ;
         }
-        return metaLine( name, ret );
-    }
-
-    private static String metaLine( String name, String value )
-    {
-        return ":" + name + "=" + value;
-    }
-
-    private static String metaLine( String name, boolean value )
-    {
-        return ":" + name + "=" + Boolean.toString( value );
+        return ret;
     }
 
     public static String[] renderChangeDescription(
@@ -354,7 +429,7 @@ public class TextWorldManip
         return ret;
     }
 
-    private static String[] charsToComplete( Chars chars )
+    private static String[] charsToComplete( Chars chars, Comment[] comments )
     {
         List<String> ret = new ArrayList<String>();
 
@@ -363,9 +438,16 @@ public class TextWorldManip
             ret.add( new String( chars.line( lineNum ) ) );
         }
 
+        addMeta( ret, "*", null, comments );
+
         for ( String starLine : chars.starLines() )
         {
             ret.add( ":*=" + starLine );
+        }
+
+        for ( String waterAmountLine : chars.waterAmountLines() )
+        {
+            ret.add( ":n=" + waterAmountLine );
         }
 
         return ret.toArray( new String[ ret.size() ] );

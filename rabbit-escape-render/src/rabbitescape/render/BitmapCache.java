@@ -1,53 +1,66 @@
 package rabbitescape.render;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
-
 import rabbitescape.render.androidlike.Bitmap;
 
 public class BitmapCache<T extends Bitmap>
 {
-    private final BitmapLoader<T> loader;
+    private BitmapLoader<T> loader;
     private final BitmapScaler<T> scaler;
-    private final int size;
-    private final Map<String, ScaledBitmap<T>> cache;
-    private final Queue<String> usedKeys;
+    private final ReLruCache<T> cache;
 
     public BitmapCache(
-        BitmapLoader<T> loader, BitmapScaler<T> scaler, int size )
+        BitmapLoader<T> loader,
+        BitmapScaler<T> scaler,
+        long cacheSize
+    )
     {
         this.loader = loader;
         this.scaler = scaler;
-        this.size = size;
-        this.cache = new HashMap<>();
-        usedKeys = new LinkedList<>();
+        this.cache = new ReLruCache<T>( cacheSize );
     }
 
-    public ScaledBitmap<T> get( String fileName )
+    public T get( String fileName, int tileSize )
     {
-        ScaledBitmap<T> ret = cache.get( fileName );
+        T ret = cache.get( fileName + tileSize );
 
         if ( ret == null )
         {
-            if ( usedKeys.size() == size )
-            {
-                String purgedKey = usedKeys.remove();
-                ScaledBitmap<T> removed = cache.remove( purgedKey );
-                if ( removed != null )
-                {
-                    removed.recycle();
-                }
-            }
-
-            ret = new ScaledBitmap<T>( scaler, loader, fileName );
-
-            cache.put( fileName, ret );
+            ret = loadBitmap( fileName, tileSize );
+            cache.put( fileName + tileSize, ret );
         }
 
-        usedKeys.remove( fileName );
-        usedKeys.add( fileName );
         return ret;
+    }
+
+    public void recycle()
+    {
+        cache.recycle();
+    }
+
+    public void setLoader( BitmapLoader<T> loader )
+    {
+        this.loader = loader;
+    }
+
+    private T loadBitmap( String fileName, int tileSize )
+    {
+        // TODO: move this logic into loader - some loaders
+        //       (including android?) can scale as they load,
+        //       meanng we have less garbage to collect.
+
+        int unscaledSize = loader.sizeFor( tileSize );
+        T unscaled = loader.load( fileName, unscaledSize );
+
+        if ( unscaledSize == tileSize )
+        {
+            return unscaled;
+        }
+        else
+        {
+            double scale = tileSize / ( double )unscaledSize;
+            T ret = scaler.scale( unscaled, scale );
+            unscaled.recycle();
+            return ret;
+        }
     }
 }

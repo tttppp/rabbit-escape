@@ -39,6 +39,7 @@ class GameMenu
 
     public JToggleButton mute;
     public JToggleButton pause;
+    public JToggleButton speed;
     public final JButton explodeAll;
     public final JButton zoomIn;
     public final JButton zoomOut;
@@ -81,6 +82,10 @@ class GameMenu
         addSpacer();
 
         this.explodeAll = addButton( "menu_explode_all", t( "Explode all" ) );
+
+        this.speed = addToggleButton(
+            "menu_speedup_inactive", "menu_speedup_active", false, t( "speed up" ) );
+
         this.zoomIn     = addButton( "menu_zoom_in",     t( "Zoom in" ) );
         this.zoomOut    = addButton( "menu_zoom_out",    t( "Zoom out" ) );
         this.back       = addButton( "menu_back",        t( "Back" ) );
@@ -189,7 +194,7 @@ class GameMenu
     private ImageIcon getIcon( String name )
     {
         return new ImageIcon(
-            bitmapCache.get( name ).bitmap( ICON_SIZE ).image );
+            bitmapCache.get( name, ICON_SIZE ).image );
     }
 
     public void addAbilitiesListener( final AbilityChangedListener listener )

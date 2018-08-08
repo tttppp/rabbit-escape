@@ -7,16 +7,25 @@ rabbit-escape-ui-swing/src/rabbitescape/ui/swing/sounds/*.wav
 rabbit-escape-ui-swing/src/rabbitescape/ui/swing/music/*.wav
 .idea/workspace.xml
 ls.txt
+levels.txt
 doc/doxygen
+recordings/
+.directory
+/.ropeproject/
+/.recommenders/
+/.metadata/
 
 # Android
 rabbit-escape-ui-android/app/libs/rabbit-escape-generic.jar
-rabbit-escape-ui-android/app/src/main/assets/
+rabbit-escape-ui-android/app/src/main/assets/images*
 rabbit-escape-ui-android/app/src/main/res/drawable-mdpi/*.png
 rabbit-escape-ui-android/app/src/main/res/drawable-hdpi/*.png
 rabbit-escape-ui-android/app/src/main/res/drawable-xhdpi/*.png
 rabbit-escape-ui-android/app/src/main/res/drawable-xxhdpi/*.png
 rabbit-escape-ui-android/app/src/main/res/drawable-xxxhdpi/*.png
+rabbit-escape-ui-android/.idea
+rabbit-escape-ui-android/rabbit-escape-ui-android.iml
+rabbit-escape-ui-android/app/app.iml
 *.apk
 *.ap_
 *.dex

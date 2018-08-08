@@ -4,20 +4,24 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.CoreMatchers.*;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import static rabbitescape.engine.util.Util.*;
 
 import org.junit.Test;
 
-import rabbitescape.engine.config.Config.Definition;
 
 public class TestConfigTools
 {
     @Test
     public void Can_get_and_set_ints()
     {
-        Config cfg = new Config( TestConfig.simpleDefinition(), null, null );
+        Config cfg = new Config(
+            TestConfig.simpleSchema(), new MemoryConfigStorage() );
 
         ConfigTools.setInt( cfg, "key1", 3 );
 
@@ -27,9 +31,9 @@ public class TestConfigTools
     @Test
     public void Default_that_looks_like_an_int_can_be_treated_as_one()
     {
-        Definition definition = new Config.Definition();
+        ConfigSchema definition = new ConfigSchema();
         definition.set( "num", "45", "" );
-        Config cfg = new Config( definition, null, null );
+        Config cfg = new Config( definition, new MemoryConfigStorage() );
 
         assertThat( ConfigTools.getInt( cfg, "num" ), is( 45 ) );
     }
@@ -37,11 +41,11 @@ public class TestConfigTools
     @Test
     public void Can_get_and_set_bools()
     {
-        Config.Definition def = new Config.Definition();
+        ConfigSchema def = new ConfigSchema();
         def.set( "key1", "true", "desc1" );
         def.set( "key2", "false", "desc2" );
 
-        Config cfg = new Config( def, null, null );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
 
         assertThat( ConfigTools.getBool( cfg, "key1" ), is( true ) );
         assertThat( ConfigTools.getBool( cfg, "key2" ), is( false ) );
@@ -55,9 +59,9 @@ public class TestConfigTools
     public void Can_get_and_set_maps_of_string()
     {
         // Make a config with default map with 1 key
-        Config.Definition def = new Config.Definition();
+        ConfigSchema def = new ConfigSchema();
         def.set( "key1", "{\"a\":\"b\"}", "desc1" );
-        Config cfg = new Config( def, null, null );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
 
         // Get the map value out
         assertThat(
@@ -89,9 +93,9 @@ public class TestConfigTools
     public void Can_get_empty_map()
     {
         // Make a config with default map with 1 key
-        Config.Definition def = new Config.Definition();
+        ConfigSchema def = new ConfigSchema();
         def.set( "key1", "{}", "desc1" );
-        Config cfg = new Config( def, null, null );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
 
         // We get an empty map of the type we ask for
         assertThat(
@@ -110,9 +114,9 @@ public class TestConfigTools
     public void Can_get_and_set_maps_of_int()
     {
         // Make a config with default map with 1 key
-        Config.Definition def = new Config.Definition();
+        ConfigSchema def = new ConfigSchema();
         def.set( "key1", "{\"a\":3}", "desc1" );
-        Config cfg = new Config( def, null, null );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
 
         // Get the map value out
         assertThat(
@@ -137,6 +141,103 @@ public class TestConfigTools
         assertThat(
             cfg.get( "key1" ),
             equalTo( "{\"aaa\":45,\"bbb\":56}" )
+        );
+    }
+
+    @Test
+    public void Convert_a_set_to_a_string()
+    {
+        SortedSet<String> set = new TreeSet<String>();
+        set.add( "a" );
+        set.add( "bc" );
+        set.add( "def" );
+
+        assertThat(
+            ConfigTools.setToString( set ),
+            equalTo( "[\"a\",\"bc\",\"def\"]" )
+        );
+    }
+
+    @Test
+    public void Can_get_and_set_sets_of_string()
+    {
+        // Make a config with default map with 1 key
+        ConfigSchema def = new ConfigSchema();
+        def.set( "key1", "[\"a\",\"bb\",\"\"]", "desc1" );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
+
+        // Get the map value out
+        assertThat(
+            ConfigTools.getSet( cfg, "key1", String.class ),
+            equalTo( newSet( "a", "bb", "" ) )
+        );
+
+        // Set a different value
+        Set<String> st = newSet( "aaa", "DFG", "xyz" );
+        ConfigTools.setSet( cfg, "key1", st );
+
+        // Check it comes out unchanged
+        assertThat(
+            ConfigTools.getSet( cfg, "key1", String.class ),
+            equalTo( st )
+        );
+
+        // Perhaps overkill: assert storage format
+        assertThat(
+            cfg.get( "key1" ),
+            equalTo( "[\"DFG\",\"aaa\",\"xyz\"]" )
+        );
+    }
+
+    @Test
+    public void Can_get_empty_set()
+    {
+        // Make a config with default map with 1 key
+        ConfigSchema def = new ConfigSchema();
+        def.set( "key1", "[]", "desc1" );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
+
+        // We get an empty map of the type we ask for
+        assertThat(
+            ConfigTools.getSet( cfg, "key1", String.class ),
+            equalTo( (Set<String>)new HashSet<String>() )
+        );
+
+        // We get an empty map of the type we ask for
+        assertThat(
+            ConfigTools.getSet( cfg, "key1", Integer.class ),
+            equalTo( (Set<Integer>)new HashSet<Integer>() )
+        );
+    }
+
+    @Test
+    public void Can_get_and_set_sets_of_int()
+    {
+        // Make a config with default map with 1 key
+        ConfigSchema def = new ConfigSchema();
+        def.set( "key1", "[1,5,7]", "desc1" );
+        Config cfg = new Config( def, new MemoryConfigStorage() );
+
+        // Get the map value out
+        assertThat(
+            ConfigTools.getSet( cfg, "key1", Integer.class ),
+            equalTo( newSet( 1, 5, 7 ) )
+        );
+
+        // Set a different value
+        Set<Integer> st = newSet( 45, 56, 0 );
+        ConfigTools.setSet( cfg, "key1", st );
+
+        // Check it comes out unchanged
+        assertThat(
+            ConfigTools.getSet( cfg, "key1", Integer.class ),
+            equalTo( st )
+        );
+
+        // Perhaps overkill: assert storage format
+        assertThat(
+            cfg.get( "key1" ),
+            equalTo( "[0,45,56]" )
         );
     }
 

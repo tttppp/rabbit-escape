@@ -20,14 +20,34 @@ slow you might have better results using
 Prerequisites
 -------------
 
-You need Java, Git, Make, Sox and Inkscape to be able to build the
-images, sounds and code.  On Ubuntu, Debian and similar:
+You need Java, Git, Make, Sox, Inkscape and the standard Unix tools to be able
+to build the images, sounds and code.  On Ubuntu, Debian and similar:
 
-    sudo apt-get install git make openjdk-7-jdk ant sox inkscape
+    sudo apt-get install \
+        git \
+        make \
+        openjdk-8-jdk \
+        ant \
+        imagemagick \
+        sox \
+        inkscape \
+        expect \
+        grep \
+        sed \
+        python3-lxml
+
+Get the source
+--------------
+
+    git clone https://github.com/andybalaam/rabbit-escape.git
 
 Run tests
 ---------
 
+Compile and run tests. Note that rendering the images (SVG to PNG) takes a while
+the first time.
+
+    cd rabbit-escape
     make test
 
 IntelliJ IDEA
@@ -58,14 +78,27 @@ You will need to run make before you start.
 Android
 -------
 
-Before you start, run:
+    sudo apt install "android*"
 
-    make android-pre
+    # download sdkmanager and accept license
+
+    make
+
+Alternatively:
+
+    sudo snap install android-studio --classic
+
+    # Start up Android Studio and install everything it prompts you to install
+
+    make
 
 Load the rabbit-escape-ui-android directory as a project into Android
 Studio.  From here you should be able to run it as normal.
 
-If you make changes in the non-Android code, run "make android-pre"
+If you make changes in the non-Android code, run:
+
+    make android-pre
+
 again and choose "Synchronize" on the jar file in Android Studio at
 app/src/libs/rabbit-escape-generic.jar
 
@@ -108,3 +141,7 @@ Then build it with:
 
     make doxygen
 
+More Info
+---------
+
+There is more developer documentation at https://github.com/andybalaam/rabbit-escape/wiki

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Prerequisites:
+# sudo apt-get install expect
+
+set -e
+set -u
+#set -x
+
+PREJ_EXP=$(cat <<END
+expect {
+    timeout {
+        send_user "\ndemand: Expected '\1', but didn't find it.\n"
+        exit 101
+    }
+    \1
+}
+END
+)
+
+PREJ_EXP=$(perl -p -e 's/\n/\\n/g' <<<"${PREJ_EXP}")
+
+function expect_with_prejudice()
+{
+    sed "s/demand \(.*\)/${PREJ_EXP}/g" < $1 | expect -
+}
+
+for E in expecttests/*.expect; do
+{
+    expect_with_prejudice $E
+}; done
+
+echo
+echo "All expect tests passed."
+echo
+
+

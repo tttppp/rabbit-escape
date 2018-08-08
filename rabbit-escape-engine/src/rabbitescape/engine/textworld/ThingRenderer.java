@@ -4,6 +4,8 @@ import java.util.List;
 
 import rabbitescape.engine.Entrance;
 import rabbitescape.engine.Exit;
+import rabbitescape.engine.Fire;
+import rabbitescape.engine.Pipe;
 import rabbitescape.engine.Thing;
 import rabbitescape.engine.Token;
 import rabbitescape.engine.Token.Type;
@@ -46,6 +48,14 @@ public class ThingRenderer
         {
             return charForToken( (Token)thing );
         }
+        else if ( thing instanceof Fire )
+        {
+            return 'A';
+        }
+        else if ( thing instanceof Pipe )
+        {
+            return 'P';
+        }
         else
         {
             throw new AssertionError(
@@ -63,6 +73,7 @@ public class ThingRenderer
             case block:   return 'k';
             case climb:   return 'c';
             case explode: return 'p';
+            case brolly:  return 'l';
             default: throw new UnknownTokenType( thing.type );
         }
     }

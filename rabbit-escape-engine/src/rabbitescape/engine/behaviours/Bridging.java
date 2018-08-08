@@ -2,12 +2,12 @@ package rabbitescape.engine.behaviours;
 
 import static rabbitescape.engine.ChangeDescription.State.*;
 import static rabbitescape.engine.Token.Type.*;
-import static rabbitescape.engine.Block.Type.*;
+import static rabbitescape.engine.Block.Material.*;
+import static rabbitescape.engine.Block.Shape.*;
 
 import java.util.Map;
 
 import rabbitescape.engine.*;
-import rabbitescape.engine.Block.Type;
 import rabbitescape.engine.ChangeDescription.State;
 
 public class Bridging extends Behaviour
@@ -116,12 +116,11 @@ public class Bridging extends Behaviour
             ) || (
                     // Bang head next
                     aboveNextBlock != null
-                 && isSolid( aboveNextBlock )
+                 && BehaviourTools.isSolid( aboveNextBlock )
             ) || (
                     // Bang head here, mid-build
                     bs < 3
-                 && twoAboveHereBlock != null
-                 && twoAboveHereBlock.type == Block.Type.solid_flat
+                 && BehaviourTools.s_isFlat( twoAboveHereBlock )
             )
         )
         {
@@ -325,7 +324,7 @@ public class Bridging extends Behaviour
             &&
             (
                    nextBlock.riseDir() != rabbit.dir
-                || nextBlock.type == solid_flat
+                || nextBlock.shape == FLAT
             )
          );
     }
@@ -369,16 +368,7 @@ public class Bridging extends Behaviour
 
     private static boolean isSlope( Block thisBlock )
     {
-        return ( thisBlock != null && thisBlock.type != solid_flat );
-    }
-
-    private static boolean isSolid( Block block )
-    {
-        return (
-               block.type == Type.solid_flat
-            || block.type == Type.solid_up_left
-            || block.type == Type.solid_up_right
-        );
+        return ( thisBlock != null && thisBlock.shape != FLAT );
     }
 
     @Override
@@ -443,7 +433,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_right,
+                        EARTH,
+                        BRIDGE_UP_RIGHT,
                         0
                     )
                 );
@@ -458,7 +449,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_left,
+                        EARTH,
+                        BRIDGE_UP_LEFT,
                         0
                     )
                 );
@@ -473,7 +465,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_right,
+                        EARTH,
+                        BRIDGE_UP_RIGHT,
                         0
                     )
                 );
@@ -488,7 +481,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_left,
+                        EARTH,
+                        BRIDGE_UP_LEFT,
                         0
                     )
                 );
@@ -502,7 +496,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_right,
+                        EARTH,
+                        BRIDGE_UP_RIGHT,
                         0
                     )
                 );
@@ -515,7 +510,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_left,
+                        EARTH,
+                        BRIDGE_UP_LEFT,
                         0
                     )
                 );
@@ -529,7 +525,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_right,
+                        EARTH,
+                        BRIDGE_UP_RIGHT,
                         0
                     )
                 );
@@ -543,7 +540,8 @@ public class Bridging extends Behaviour
                     new Block(
                         rabbit.x,
                         rabbit.y,
-                        Block.Type.bridge_up_left,
+                        EARTH,
+                        BRIDGE_UP_LEFT,
                         0
                     )
                 );

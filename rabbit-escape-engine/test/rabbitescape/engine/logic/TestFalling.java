@@ -266,6 +266,131 @@ public class TestFalling
     }
 
     @Test
+    public void Rabbot_fall_5_squares_and_survive()
+    {
+        World world = createWorld(
+            "   t ",
+            "     ",
+            "     ",
+            "     ",
+            "     ",
+            "     ",
+            "#####"
+        );
+
+        world.step();
+        world.step();
+        world.step();
+
+        assertThat(
+            renderWorld( world, true, false ),
+            equalTo(
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "   t>",  // Lands and starts walking.
+                "#####"
+            )
+        );
+
+        world.step();
+
+        assertThat(
+            renderWorld( world, true, false ),
+            equalTo(
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "    t",  // Walks off.
+                "#####"
+            )
+        );
+    }
+
+    @Test
+    public void Rabbot_falls_6_squares_and_dies()
+    {
+        World world = createWorld(
+            "   t ",
+            "     ",
+            "     ",
+            "     ",
+            "     ",
+            "     ",
+            "     ",
+            "#####"
+        );
+
+        world.step();     // Falling
+        world.step();
+
+        assertThat(
+            renderWorld( world, true, false ),
+            equalTo(
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "   t ",
+                "   f ",
+                "   f ",  // Still falling
+                "#####"
+            )
+        );
+
+        world.step();
+
+        assertThat(
+            renderWorld( world, false, false ),
+            equalTo(
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "   t ",  // Landed ...
+                "#####"
+            )
+        );
+
+        assertThat(
+            renderWorld( world, true, false ),
+            equalTo(
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "   X ",  // ... and going to die
+                "#####"
+            )
+        );
+
+        world.step();
+
+
+        assertThat(
+            renderWorld( world, true, false ),
+            equalTo(
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",
+                "     ",  // and now dead
+                "#####"
+            )
+        );
+    }
+
+    @Test
     public void Fall_onto_slope_down_right()
     {
         World world = createWorld(
@@ -384,7 +509,7 @@ public class TestFalling
             "   " + "\n" +
             "r r" + "\n" +
             "f f" + "\n" +
-            "e h",             // TODO: should die here?
+            "x x",
 
             "   " + "\n" +
             "   " + "\n" +
@@ -777,6 +902,7 @@ public class TestFalling
     {
         // The animation for this is wrong so this test will need updating,
         // but the behaviour must show the rabbits dying.
+        // done for right slope. left rise outstanding.
 
         World world = createWorld(
             "rrrr",
@@ -801,7 +927,7 @@ public class TestFalling
                 "    ",
                 "rrrr",
                 "fxxf",
-                "h##e",
+                "x##x",
                 "####"
             )
         );
@@ -870,7 +996,7 @@ public class TestFalling
                 "    ",
                 "rrrr",
                 "fxxf",
-                "h##e",
+                "x##x",
                 "####"
             )
         );
